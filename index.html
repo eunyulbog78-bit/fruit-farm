@@ -13,7 +13,72 @@ html, body {
     display:flex; justify-content:center; align-items:center;
     overflow:hidden;
 }
-body.waterdrop { background:linear-gradient(135deg,#050a1a 0%,#051432 100%); }
+body.juicy { background:linear-gradient(135deg,#1a0a00,#2a0a14); }
+
+/* ══ 과즙 배경 ══════════════════════════════════════════════ */
+body.juicy { background:#05000f; }
+
+.app.juicy {
+    background:
+        /* 빛 산란 */
+        radial-gradient(ellipse 90% 70% at 15% 15%, rgba(255,30,90,.55) 0%, transparent 48%),
+        radial-gradient(ellipse 80% 80% at 85% 80%, rgba(110,0,230,.55) 0%, transparent 48%),
+        radial-gradient(ellipse 70% 55% at 80% 15%, rgba(255,130,0,.45) 0%, transparent 42%),
+        radial-gradient(ellipse 65% 55% at 20% 80%, rgba(200,0,60,.45) 0%, transparent 42%),
+        radial-gradient(ellipse 50% 50% at 50% 45%, rgba(60,0,130,.6) 0%, transparent 55%),
+        /* 깊이 베이스 */
+        linear-gradient(150deg, #140008 0%, #07001c 45%, #110003 100%) !important;
+    animation: juiceShift 9s ease-in-out infinite;
+}
+
+/* 유리 광택 레이어 */
+.app.juicy::before {
+    content:'';
+    position:absolute; inset:0;
+    background:
+        linear-gradient(170deg, rgba(255,200,230,.11) 0%, rgba(255,255,255,.04) 20%, transparent 45%),
+        linear-gradient(to bottom, rgba(255,255,255,.06) 0%, transparent 18%);
+    pointer-events:none; z-index:1; border-radius:inherit;
+}
+
+/* 빛 줄기 */
+.app.juicy::after {
+    content:'';
+    position:absolute; top:-10%; left:25%; width:50%; height:80%;
+    background:linear-gradient(175deg, rgba(255,160,200,.07) 0%, transparent 70%);
+    transform:rotate(-12deg) skewX(-8deg);
+    pointer-events:none; z-index:1;
+}
+
+@keyframes juiceShift {
+    0%,100% { filter:hue-rotate(0deg)   brightness(1)    saturate(1.4); }
+    30%     { filter:hue-rotate(22deg)  brightness(1.18) saturate(1.65); }
+    65%     { filter:hue-rotate(-18deg) brightness(1.12) saturate(1.55); }
+}
+
+/* 떠오르는 과일 */
+.juice-drop {
+    position:absolute; pointer-events:none; z-index:2;
+    animation:juiceFloat linear infinite;
+    will-change:transform,opacity;
+}
+@keyframes juiceFloat {
+    0%   { transform:translateY(0)      rotate(0deg)   scale(1);   opacity:.32; }
+    40%  { opacity:.45; }
+    80%  { opacity:.2; }
+    100% { transform:translateY(-110vh) rotate(30deg)  scale(.7);  opacity:0; }
+}
+
+/* 반짝임 버블 */
+.juice-bubble {
+    position:absolute; pointer-events:none; z-index:2;
+    border-radius:50%; animation:bubbleRise linear infinite;
+    will-change:transform,opacity;
+}
+@keyframes bubbleRise {
+    0%   { transform:translateY(0) scale(1);   opacity:.5; }
+    100% { transform:translateY(-110vh) scale(1.4); opacity:0; }
+}
 
 /* 데스크톱: 정사각형 */
 .app {
@@ -197,6 +262,43 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
 .modal-box::-webkit-scrollbar { width:5px; }
 .modal-box::-webkit-scrollbar-track { background:#1a1a1a; }
 .modal-box::-webkit-scrollbar-thumb { background:#444; border-radius:4px; }
+
+/* 두리안 도둑 팝업 */
+#durian-popup {
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%, -50%) scale(0.8);
+    z-index:201; pointer-events:none;
+    opacity:0; transition:opacity .2s, transform .2s;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    background:#1a0000; border:3px solid #ff2200;
+    border-radius:20px; padding:24px 32px; min-width:240px;
+    box-shadow:0 0 30px #ff0000, 0 0 60px #880000;
+    text-align:center;
+}
+#durian-popup.show { opacity:1; transform:translate(-50%, -50%) scale(1); }
+#durian-popup.flee {
+    opacity:0;
+    transform:translate(120%, -50%) scale(0.5) rotate(20deg);
+    transition:opacity .5s, transform .5s;
+}
+.durian-char {
+    font-size:64px; line-height:1;
+    animation:durianBounce .4s ease-in-out infinite alternate;
+}
+@keyframes durianBounce {
+    0%   { transform:translateY(0) rotate(-5deg); }
+    100% { transform:translateY(-8px) rotate(5deg); }
+}
+.durian-stolen {
+    font-size:20px; font-weight:bold; color:#ff4444;
+    animation:shake .15s ease-in-out 3;
+}
+@keyframes shake {
+    0%,100% { transform:translateX(0); }
+    33%     { transform:translateX(-6px); }
+    66%     { transform:translateX(6px); }
+}
+.durian-escape { font-size:13px; color:#888; }
 </style>
 </head>
 <body>
@@ -226,11 +328,12 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
 <div class="screen" id="scr-main" style="justify-content:space-between">
     <!-- 상단 정보 -->
     <div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
             <span id="lbl-nick" style="color:#0f0;font-weight:bold;font-size:15px"></span>
             <button class="btn" id="btn-profile"
-                style="background:#282828;color:#fff;font-size:15px;padding:5px 12px">👤</button>
+                style="display:none">👤</button>
         </div>
+        <div id="lbl-title" style="display:none;margin-bottom:4px"></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
             <span id="lbl-gold" style="color:#ffd700;font-weight:bold;font-size:16px"></span>
             <span id="lbl-day"  style="color:#87ceeb;font-weight:bold;font-size:16px"></span>
@@ -249,18 +352,22 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
     </div>
 
     <!-- 하단 버튼 -->
-    <div style="display:flex;gap:10px">
+    <div style="display:flex;gap:8px">
         <button class="btn" id="btn-inv-open"
-            style="flex:1;background:#8b4513;color:#fff;font-size:16px;padding:16px 0">
+            style="flex:1;background:#8b4513;color:#fff;font-size:14px;padding:14px 0">
             🎒 인벤토리</button>
         <button class="btn" id="btn-mkt-open"
-            style="flex:1;background:#dc143c;color:#fff;font-size:16px;padding:16px 0">
+            style="flex:1;background:#dc143c;color:#fff;font-size:14px;padding:14px 0">
             🏪 시장</button>
+        <button class="btn" id="btn-shop-open"
+            style="flex:1;background:#1a5c8a;color:#fff;font-size:14px;padding:14px 0">
+            🛒 상점</button>
     </div>
 </div>
 
 <!-- 획득 팝업 -->
 <div id="drop-backdrop"></div>
+<div id="durian-popup"></div>
 <div id="drop-notif"></div>
 
 <!-- 인벤토리 모달 -->
@@ -286,6 +393,17 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
             시세는 매일 자정에 자동으로 변동됩니다.</p>
         <button class="btn" id="btn-mkt-close"
             style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:8px;width:100%">닫기</button>
+    </div>
+</div>
+
+<!-- 상점 모달 -->
+<div class="modal" id="modal-shop">
+    <div class="modal-box">
+        <h2 style="color:#ffd700;margin-bottom:14px">🛒 상점</h2>
+        <div id="shop-gold" style="color:#ffd700;font-size:13px;margin-bottom:14px"></div>
+        <div id="shop-list"></div>
+        <button class="btn" id="btn-shop-close"
+            style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
     </div>
 </div>
 
@@ -327,7 +445,8 @@ const BASE_FRUITS = [
 ];
 const GOLD = '황금 ';
 const DIA  = '다이아몬드 ';
-const WATER_PRICE = 5000;
+const JUICE_PRICE      = 5000;
+const TITLE_GABBU_PRICE = 1000000;
 
 // 등급 설정 (startPrice: 해당 등급 과일의 기본 시작 가격)
 const RARITY = {
@@ -368,25 +487,37 @@ const cat = buildCatalog();
 const G = {
     nickname:'', gold:0, day:1, clickCount:0,
     equippedFruit:null, activeBackground:'normal',
-    waterDropPurchased:false, lastDate:new Date().toDateString(),
+    juicePurchased:false,
+    ownedTitles:[], equippedTitle:null,
+    lastDate:new Date().toDateString(),
     emoji:{...cat.emoji}, prices:{...cat.prices},
     rates:{...cat.rates}, inventory:{...cat.inv},
 
     save() {
-        localStorage.setItem('fruitFarm3', JSON.stringify({
+        localStorage.setItem('fruitFarm4', JSON.stringify({
             nickname:this.nickname, gold:this.gold, day:this.day,
             clickCount:this.clickCount, equippedFruit:this.equippedFruit,
             activeBackground:this.activeBackground,
-            waterDropPurchased:this.waterDropPurchased, lastDate:this.lastDate,
+            juicePurchased:this.juicePurchased,
+            ownedTitles:this.ownedTitles, equippedTitle:this.equippedTitle,
+            lastDate:this.lastDate,
             prices:this.prices, inventory:this.inventory,
         }));
     },
     load() {
-        const d = JSON.parse(localStorage.getItem('fruitFarm3') || 'null');
+        const d = JSON.parse(localStorage.getItem('fruitFarm4') || 'null');
         if (!d) return;
         Object.assign(this, d);
         if (d.prices) Object.assign(this.prices, d.prices);
         if (d.inventory) Object.assign(this.inventory, d.inventory);
+    },
+    buyJuiceBg() {
+        if (this.juicePurchased || this.gold < JUICE_PRICE) return false;
+        this.gold -= JUICE_PRICE; this.juicePurchased = true; return true;
+    },
+    buyTitle(title, price) {
+        if (this.ownedTitles.includes(title) || this.gold < price) return false;
+        this.gold -= price; this.ownedTitles.push(title); return true;
     },
     base(fruit) {
         if (!fruit) return '';
@@ -435,7 +566,6 @@ const G = {
     sellOne(f)  { if(this.inventory[f]>0){this.inventory[f]--;this.gold+=this.prices[f];} },
     sellAll(f)  { this.gold+=this.prices[f]*(this.inventory[f]||0); this.inventory[f]=0; },
     buyOne(f)   { if(this.gold<this.prices[f])return false; this.gold-=this.prices[f]; this.inventory[f]=(this.inventory[f]||0)+1; return true; },
-    buyBg()     { if(this.waterDropPurchased||this.gold<WATER_PRICE)return false; this.gold-=WATER_PRICE; this.waterDropPurchased=true; return true; },
 };
 
 // ── UI 유틸 ───────────────────────────────────────────────────
@@ -447,6 +577,39 @@ const closeModal = id => $(id).classList.remove('open');
 function closeDrop() {
     $('drop-notif').classList.remove('show');
     $('drop-backdrop').classList.remove('show');
+}
+
+// ── 두리안 도둑 ────────────────────────────────────────────────
+function showDurian() {
+    const stolen = Math.floor(G.gold * 0.1);
+    G.gold = Math.max(0, G.gold - stolen);
+    G.save();
+    refreshMain();
+
+    const el = $('durian-popup');
+    el.innerHTML = `
+        <div class="durian-char">🦹</div>
+        <div style="font-size:13px;color:#ff8888;font-weight:bold;letter-spacing:1px">두리안 도둑 등장!</div>
+        <div class="durian-stolen">💰 −${stolen.toLocaleString()} G 도둑맞았다!</div>
+        <div style="font-size:22px;margin:4px 0">🌵💨</div>
+        <div class="durian-escape">냄새만 남기고 줄행랑...</div>`;
+
+    el.classList.remove('flee');
+    el.classList.add('show');
+
+    // 1.5초 후 도망
+    setTimeout(() => {
+        el.classList.add('flee');
+        setTimeout(() => {
+            el.classList.remove('show', 'flee');
+        }, 500);
+    }, 1500);
+}
+
+function checkDurian() {
+    if (Math.random() * 100 >= 0.5) return false;
+    showDurian();
+    return true;
 }
 
 function showDrop(fruit, count) {
@@ -514,15 +677,87 @@ function rarityDot(fruitName) {
 }
 
 function applyBg() {
-    document.body.classList.toggle('waterdrop', G.activeBackground==='waterdrop');
+    const app = $('app');
+    const isJuice = G.activeBackground === 'juice';
+    document.body.classList.toggle('juicy', isJuice);
+    app.classList.toggle('juicy', isJuice);
+
+    app.querySelectorAll('.juice-drop,.juice-bubble').forEach(el => el.remove());
+    if (!isJuice) return;
+
+    // 떠오르는 과일 (glow 포함)
+    const fruits = [
+        {em:'🍎', glow:'#ff2244', size:28, left:6},
+        {em:'🍓', glow:'#ff1060', size:22, left:18},
+        {em:'🍇', glow:'#8000ff', size:32, left:30},
+        {em:'🍊', glow:'#ff7700', size:24, left:42},
+        {em:'🍋', glow:'#eecc00', size:19, left:54},
+        {em:'🍑', glow:'#ff7050', size:26, left:65},
+        {em:'🫐', glow:'#5050ff', size:21, left:76},
+        {em:'🍒', glow:'#cc0033', size:18, left:86},
+        {em:'🍈', glow:'#55dd44', size:27, left:12},
+        {em:'🥭', glow:'#ff8800', size:30, left:48},
+        {em:'🍍', glow:'#ddcc00', size:23, left:72},
+        {em:'🍐', glow:'#88cc44', size:21, left:36},
+    ];
+    fruits.forEach((f, i) => {
+        const s = document.createElement('span');
+        s.className = 'juice-drop';
+        s.textContent = f.em;
+        s.style.cssText =
+            `left:${f.left + (Math.random()*6-3)}%;` +
+            `bottom:-${f.size+10}px;` +
+            `font-size:${f.size}px;` +
+            `animation-duration:${9+i*1.4}s;` +
+            `animation-delay:-${i*1.25}s;` +
+            `filter:drop-shadow(0 0 8px ${f.glow}) drop-shadow(0 0 16px ${f.glow});`;
+        app.appendChild(s);
+    });
+
+    // 반짝이는 버블
+    const bubbleColors = ['#ff80a0','#c080ff','#ffa050','#80c0ff','#ff60a0','#ffe060'];
+    for (let i = 0; i < 18; i++) {
+        const b = document.createElement('div');
+        b.className = 'juice-bubble';
+        const size = 3 + Math.random()*7;
+        const color = bubbleColors[i % bubbleColors.length];
+        b.style.cssText =
+            `width:${size}px;height:${size}px;` +
+            `left:${Math.random()*95}%;bottom:-20px;` +
+            `background:${color};` +
+            `box-shadow:0 0 ${size*2}px ${color};` +
+            `opacity:.5;` +
+            `animation-duration:${6+Math.random()*10}s;` +
+            `animation-delay:-${Math.random()*12}s;`;
+        app.appendChild(b);
+    }
 }
 
 // ── 메인 화면 ─────────────────────────────────────────────────
+// 칭호 설정
+const TITLES = {
+    '갑부': { icon:'👑', color:'#ffd700', bg:'#3a2a00', price: TITLE_GABBU_PRICE }
+};
+
 function refreshMain() {
-    $('lbl-nick').textContent   = `🌱 ${G.nickname}`;
-    $('lbl-gold').textContent   = `💰 골드: ${G.gold.toLocaleString()}`;
-    $('lbl-day').textContent    = `📅 ${G.day}일차`;
+    $('lbl-nick').textContent = `🌱 ${G.nickname}`;
+    $('lbl-gold').textContent = `💰 골드: ${G.gold.toLocaleString()}`;
+    $('lbl-day').textContent  = `📅 ${G.day}일차`;
     $('lbl-clicks').textContent = `👆 클릭: ${G.clickCount.toLocaleString()}회`;
+
+    // 칭호 표시
+    const titleEl = $('lbl-title');
+    if (G.equippedTitle && TITLES[G.equippedTitle]) {
+        const t = TITLES[G.equippedTitle];
+        titleEl.style.display = 'block';
+        titleEl.innerHTML = `<span style="font-size:12px;font-weight:bold;padding:2px 10px;
+            border-radius:12px;background:${t.bg};color:${t.color};
+            border:1px solid ${t.color};letter-spacing:1px">
+            ${t.icon} ${G.equippedTitle}</span>`;
+    } else {
+        titleEl.style.display = 'none';
+    }
+
     updateEquip();
 }
 // 등급별 앱 배경 (버튼색, 앱 배경)
@@ -724,37 +959,92 @@ function renderEquip() {
 
 // ── 프로필 ────────────────────────────────────────────────────
 function renderProfile() {
-    const el=$('profile-content'), can=G.gold>=WATER_PRICE;
-    const nActive=G.activeBackground==='normal', wActive=G.activeBackground==='waterdrop';
+    const el=$('profile-content');
+    const nActive=G.activeBackground==='normal', jActive=G.activeBackground==='juice';
     el.innerHTML=`
         <p style="margin-bottom:5px">닉네임: <strong>${G.nickname}</strong></p>
         <p style="color:#ffd700;margin-bottom:14px">보유 골드: ${G.gold.toLocaleString()} G</p>
+        ${G.equippedTitle?`<p style="margin-bottom:14px">칭호: <strong style="color:#ffd700">${TITLES[G.equippedTitle]?.icon} ${G.equippedTitle}</strong></p>`:''}
         <p style="color:#444;font-size:12px;margin-bottom:9px">─── 배경 선택 ───────────────</p>
         <div id="bg-n" style="padding:12px 16px;margin-bottom:8px;border-radius:8px;cursor:pointer;
             background:${nActive?'#1a4a1a':'#222'};border:${nActive?'2px solid #0f0':'1px solid #333'}">
-            🌑  일반 배경 ${nActive?'<span style="color:#0f0">  ✔ 사용 중</span>':''}
+            🌑 일반 배경 ${nActive?'<span style="color:#0f0"> ✔ 사용 중</span>':''}
         </div>
-        <div id="bg-w" style="padding:12px 16px;border-radius:8px;
-            background:${G.waterDropPurchased?(wActive?'#0a1e3c':'#222'):'#181818'};
-            border:${wActive?'2px solid #4af':'1px solid #333'}">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${G.waterDropPurchased?0:8}px">
-                <span style="color:${G.waterDropPurchased?'#fff':'#555'}">
-                    ${G.waterDropPurchased?'💧':'🔒'}  물방울 배경 ${wActive?'<span style="color:#4af">  ✔ 사용 중</span>':''}
-                </span>
-            </div>
-            ${G.waterDropPurchased?'':`
-                <div style="font-size:12px;color:#555;margin-bottom:7px">구매가: ${WATER_PRICE.toLocaleString()} G</div>
-                <button class="btn" id="btn-buy-bg" ${can?'':'disabled'}
-                    style="width:100%;background:${can?'#006b6b':'#333'};color:${can?'#fff':'#555'};font-size:13px;padding:8px 0">
-                    ${can?`구매  (${WATER_PRICE.toLocaleString()} G)`:`골드 부족  (${WATER_PRICE.toLocaleString()} G 필요)`}
-                </button>`}
+        <div id="bg-j" style="padding:12px 16px;border-radius:8px;cursor:${G.juicePurchased?'pointer':'default'};
+            background:${G.juicePurchased?(jActive?'#2a0a14':'#222'):'#181818'};
+            border:${jActive?'2px solid #ff6030':'1px solid #333'};opacity:${G.juicePurchased?1:.6}">
+            ${G.juicePurchased?'🍹':'🔒'} 과즙 배경
+            ${jActive?'<span style="color:#ff8050"> ✔ 사용 중</span>':''}
+            ${!G.juicePurchased?'<span style="color:#555;font-size:12px;margin-left:8px">(상점에서 구매)</span>':''}
         </div>`;
     $('bg-n').onclick=()=>{ G.activeBackground='normal'; G.save(); applyBg(); renderProfile(); };
-    if (G.waterDropPurchased)
-        $('bg-w').style.cursor='pointer',
-        $('bg-w').onclick=()=>{ G.activeBackground='waterdrop'; G.save(); applyBg(); renderProfile(); };
-    const bb=$('btn-buy-bg');
-    if(bb) bb.onclick=()=>{ if(G.buyBg()){G.activeBackground='waterdrop';G.save();applyBg();renderProfile();alert('물방울 배경 구매 완료! 💧');} };
+    if (G.juicePurchased)
+        $('bg-j').onclick=()=>{ G.activeBackground='juice'; G.save(); applyBg(); renderProfile(); };
+}
+
+// ── 상점 ─────────────────────────────────────────────────────
+function renderShop() {
+    $('shop-gold').textContent = `💰 보유 골드: ${G.gold.toLocaleString()} G`;
+    const list = $('shop-list');
+    list.innerHTML = '';
+
+    const items = [
+        {
+            id:'juice-bg', icon:'🍹', name:'과즙 배경',
+            desc:'과일 과즙으로 가득 찬 예쁜 배경',
+            price:JUICE_PRICE,
+            owned: G.juicePurchased,
+            active: G.activeBackground==='juice',
+            onBuy:  ()=>{ if(G.buyJuiceBg()){G.activeBackground='juice';G.save();applyBg();renderShop();refreshMain();} },
+            onUse:  ()=>{ G.activeBackground='juice'; G.save(); applyBg(); renderShop(); refreshMain(); },
+            onOff:  ()=>{ G.activeBackground='normal'; G.save(); applyBg(); renderShop(); refreshMain(); },
+        },
+        {
+            id:'title-gabbu', icon:'👑', name:'갑부 칭호',
+            desc:'닉네임 아래에 황금 갑부 칭호 표시',
+            price:TITLE_GABBU_PRICE,
+            owned: G.ownedTitles.includes('갑부'),
+            active: G.equippedTitle==='갑부',
+            onBuy:  ()=>{ if(G.buyTitle('갑부',TITLE_GABBU_PRICE)){G.equippedTitle='갑부';G.save();renderShop();refreshMain();} },
+            onUse:  ()=>{ G.equippedTitle='갑부'; G.save(); renderShop(); refreshMain(); },
+            onOff:  ()=>{ G.equippedTitle=null; G.save(); renderShop(); refreshMain(); },
+        },
+    ];
+
+    for (const it of items) {
+        const canBuy = !it.owned && G.gold >= it.price;
+        const div = document.createElement('div');
+        div.style.cssText='padding:14px;margin-bottom:10px;border-radius:10px;background:#1a1a1a;border:1px solid #333';
+        div.innerHTML=`
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <span style="font-size:26px">${it.icon}</span>
+                <div style="flex:1">
+                    <div style="font-weight:bold;font-size:15px">${it.name}</div>
+                    <div style="color:#777;font-size:12px">${it.desc}</div>
+                </div>
+                ${it.owned?'<span style="color:#0f0;font-size:12px">✔ 보유</span>':`<span style="color:#ffd700;font-size:13px">${it.price.toLocaleString()}G</span>`}
+            </div>
+            <div style="display:flex;gap:8px">
+                ${!it.owned
+                    ? `<button class="btn" id="shop-buy-${it.id}" ${canBuy?'':'disabled'}
+                           style="flex:1;background:${canBuy?'#1a5c8a':'#333'};color:${canBuy?'#fff':'#555'};font-size:13px;padding:9px 0">
+                           ${canBuy?`구매 (${it.price.toLocaleString()}G)`:`골드 부족`}</button>`
+                    : it.active
+                        ? `<button class="btn" id="shop-off-${it.id}"
+                               style="flex:1;background:#333;color:#aaa;font-size:13px;padding:9px 0">해제</button>`
+                        : `<button class="btn" id="shop-use-${it.id}"
+                               style="flex:1;background:#2a6a2a;color:#fff;font-size:13px;padding:9px 0">장착</button>`
+                }
+            </div>`;
+        list.appendChild(div);
+
+        const buyBtn = document.getElementById(`shop-buy-${it.id}`);
+        const useBtn = document.getElementById(`shop-use-${it.id}`);
+        const offBtn = document.getElementById(`shop-off-${it.id}`);
+        if (buyBtn) buyBtn.onclick = it.onBuy;
+        if (useBtn) useBtn.onclick = it.onUse;
+        if (offBtn) offBtn.onclick = it.onOff;
+    }
 }
 
 // ── 이벤트 ───────────────────────────────────────────────────
@@ -770,12 +1060,16 @@ $('inp-nick').addEventListener('keydown',e=>{ if(e.key==='Enter')$('btn-nick-ok'
 $('action-btn').onclick = () => {
     if ($('drop-notif').classList.contains('show')) return;
     G.registerClick();
+
+    // 두리안 도둑 0.5% 체크
+    if (checkDurian()) return;
+
     const {fruit,count}=G.tryGetFruit();
     if (fruit) { showDrop(fruit, count); }
     G.save(); refreshMain();
 };
 
-$('btn-profile').onclick      = ()=>{ renderProfile(); openModal('modal-profile'); };
+// 프로필 버튼 비활성화
 $('btn-profile-close').onclick= ()=>{ closeModal('modal-profile'); refreshMain(); };
 
 $('btn-inv-open').onclick  = ()=>{ renderInv();   openModal('modal-inv'); };
@@ -787,6 +1081,8 @@ $('btn-mkt-close').onclick = ()=>{ closeModal('modal-mkt'); refreshMain(); };
 $('btn-equip-open').onclick  = ()=>{ renderEquip();  openModal('modal-equip'); };
 $('btn-equip-close').onclick  = ()=> closeModal('modal-equip');
 $('btn-detail-close').onclick = ()=> closeModal('modal-detail');
+$('btn-shop-open').onclick    = ()=>{ renderShop(); openModal('modal-shop'); };
+$('btn-shop-close').onclick   = ()=>{ closeModal('modal-shop'); refreshMain(); };
 
 // 모달 외부 클릭 닫기
 document.querySelectorAll('.modal').forEach(m=>{
