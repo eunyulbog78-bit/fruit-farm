@@ -1145,10 +1145,10 @@ async function checkActiveSession() {
     const active = await FB.get(`session/${encN(G.nickname)}`);
     if (active === null || typeof active === 'object') return; // Firebase 오류면 무시
     if (active !== getSessionId()) {
-        // 다른 기기가 이 계정으로 로그인함
-        G.nickname = ''; G.save();
-        alert('📱 다른 기기에서 로그인하여 자동 로그아웃 되었습니다.');
-        show('scr-start');
+        alert('📱 다른 기기에서 로그인되어 자동 로그아웃 되었습니다.\n새 닉네임으로 처음부터 시작합니다.');
+        localStorage.removeItem('fruitFarm4');
+        localStorage.setItem('fruitFarm4_kicked', '1');
+        location.reload();
     }
 }
 
@@ -2352,6 +2352,15 @@ document.querySelectorAll('.modal').forEach(m=>{
 
 // ── 초기화 ────────────────────────────────────────────────────
 function startGame() {
+    // 다른 기기에 의해 강제 로그아웃된 경우 → 닉네임 설정부터 새로 시작
+    if (localStorage.getItem('fruitFarm4_kicked')) {
+        localStorage.removeItem('fruitFarm4_kicked');
+        show('scr-nick');
+        setInterval(()=>{ if(G.checkDay()){G.save();refreshMain();} }, 30000);
+        setInterval(()=>{ processMailbox(); updateFriendBadge(); }, 5000);
+        setInterval(checkActiveSession, 20000);
+        return;
+    }
     G.load();
     G.checkDay();
     if (!Object.keys(G.priceHistory).length) G.recordPrices();
