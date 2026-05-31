@@ -695,6 +695,7 @@ const BASE_FRUITS = [
     { name:'수박', emoji:'🍉', price:500, rate:0.7, rarity:'영웅' },
     { name:'키위', emoji:'🥝', price:450, rate:0.8, rarity:'영웅' },
     { name:'포도', emoji:'🍇', price:1000,      rate:0.5,      rarity:'전설' },
+    { name:'코코넛', emoji:'🥥', price:200000,    rate:0.001,    rarity:'신화' },
     { name:'레몬', emoji:'🍋', price:200000,    rate:0.001,    rarity:'신화' },
     { name:'할머니가 숨겨둔 감', emoji:'🍊', price:1000000,  rate:0.00005,  rarity:'불멸' },
     { name:'별혼과', emoji:'🌟', price:100000000, rate:0.000001, rarity:'비밀' },
@@ -826,13 +827,14 @@ const G = {
     isMut(fruit)  { return this.isGold(fruit) || this.isDia(fruit); },
     get eqBase() { return this.base(this.equippedFruit); },
 
-    registerClick() { this.clickCount += this.eqBase==='할머니가 숨겨둔 감' ? 2 : 1; },
+    registerClick() { this.clickCount += this.eqBase==='코코넛' ? 2 : 1; },
 
     tryGetFruit() {
         // 1. 등급 추첨 (등급별 확률)
         const mult = this.eqBase==='딸기'           ? 1.1
-                   : this.eqBase==='할머니가 숨겨둔 감' ? 2
-                   : this.eqBase==='별혼과'          ? 3 : 1;
+               : this.eqBase==='코코넛'         ? 2
+               : this.eqBase==='할머니가 숨겨둔 감' ? 2.5
+               : this.eqBase==='별혼과'          ? 3 : 1;
         const rarityRates = Object.entries(RARITY_RATES).map(([rarity, rate]) => [rarity, rate * mult]);
         const roll = Math.random() * 100;
         let cum = 0, pickedRarity = null;
@@ -862,9 +864,10 @@ const G = {
         if (got && this.eqBase==='별혼과' && Math.random()<0.15) {
             const up = upgradeRarity(got); if (up) got=up;
         }
-        // 키위 능력: 10% 확률로 2배 지급, 레몬 능력: 50% 확률로 2배 지급
+        // 키위 능력: 10% 확률로 2배 지급, 레몬 능력: 50% 확률로 2배 지급, 감 능력: 0.3% 확률로 2배 지급
         const count = (got && this.eqBase==='키위' && Math.random()<0.1) ? 2
-                    : (got && this.eqBase==='레몬' && Math.random()<0.5) ? 2 : 1;
+            : (got && this.eqBase==='레몬' && Math.random()<0.5) ? 2
+                : (got && this.eqBase==='할머니가 숨겨둔 감' && Math.random()<0.003) ? 2 : 1;
         return { fruit: got, count };
     },
 
@@ -997,17 +1000,57 @@ function updateFriendBadge() {
 
 // ── 선물 코드 (기기 간 거래) ────────────────────────────────────
 const USED_GIFT_CODES_KEY = 'fruitFarm4_usedGiftCodes';
-function getUsedGiftCodes() {
+function getUsedGiftCodeIdsLocal() {
     return JSON.parse(localStorage.getItem(USED_GIFT_CODES_KEY) || '[]');
 }
-function hasUsedGiftCode(code) {
-    return getUsedGiftCodes().includes(code);
+function makeGiftCodeId(code) {
+    // Stable short hash for DB key and local used list.
+    let h1 = 5381, h2 = 52711;
+    for (let i = 0; i < code.length; i++) {
+        const ch = code.charCodeAt(i);
+        h1 = ((h1 << 5) + h1) ^ ch;
+        h2 = ((h2 << 5) + h2) ^ ch;
+    }
+    return `g${(h1 >>> 0).toString(16)}${(h2 >>> 0).toString(16)}`;
 }
-function markGiftCodeUsed(code) {
-    const used = getUsedGiftCodes();
-    if (!used.includes(code)) {
-        used.push(code);
+async function claimGiftCode(code) {
+    const codeId = makeGiftCodeId(code);
+
+    if (FB && FIREBASE_URL) {
+        try {
+            const url = `${FIREBASE_URL}/ff/gift_used/${codeId}.json`;
+            const getRes = await fetch(url, { headers: { 'X-Firebase-ETag': 'true' } });
+            if (!getRes.ok) return null;
+
+            const etag = getRes.headers.get('ETag');
+            const current = await getRes.json();
+            if (current !== null) return false;
+
+            const payload = { usedAt: Date.now(), by: G.nickname || '?' };
+            const putRes = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(etag ? { 'if-match': etag } : {}),
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (putRes.status === 412) return false;
+            return putRes.ok ? true : null;
+        } catch {
+            return null;
+        }
+    }
+
+    const used = getUsedGiftCodeIdsLocal();
+    if (used.includes(codeId)) return false;
+    try {
+        used.push(codeId);
         localStorage.setItem(USED_GIFT_CODES_KEY, JSON.stringify(used));
+        return true;
+    } catch {
+        return null;
     }
 }
 
@@ -1019,19 +1062,23 @@ function generateGiftCode(items, gold) {
     G.save(); refreshMain();
     return btoa(encodeURIComponent(JSON.stringify(data)));
 }
-function redeemGiftCode(code) {
+async function redeemGiftCode(code) {
     try {
         const normalizedCode = code.trim();
         if (!normalizedCode) return alert('코드를 입력하세요.');
-        if (hasUsedGiftCode(normalizedCode)) return alert('❌ 이미 사용한 선물 코드입니다.');
 
         const data = JSON.parse(decodeURIComponent(atob(normalizedCode)));
+        if (!data || typeof data !== 'object') return alert('❌ 유효하지 않은 코드입니다.');
+
+        const claimed = await claimGiftCode(normalizedCode);
+        if (claimed === false) return alert('❌ 이미 사용한 선물 코드입니다.');
+        if (claimed === null) return alert('❌ 코드 사용 여부를 확인할 수 없습니다. 잠시 후 다시 시도하세요.');
+
         let msg = `🎁 ${data.from || '?'}의 선물!\n`;
         if (data.gold > 0) { G.gold += data.gold; msg += `💰 ${data.gold.toLocaleString()}G\n`; }
         for (const [f,c] of Object.entries(data.items || {})) {
             if (c > 0) { G.addFruit(f,c); msg += `${G.emoji[f]||f} ${f} ${c}개\n`; }
         }
-        markGiftCodeUsed(normalizedCode);
         G.save(); refreshMain();
         alert(msg + '\n✅ 수령 완료!');
     } catch { alert('❌ 유효하지 않은 코드입니다.'); }
@@ -1455,8 +1502,9 @@ function updateEquip() {
                  : base==='수박'?'효과: 다이아 과일 확률 ×1.5'
                  : base==='키위'?'효과: 10% 확률 과일 2배 지급'
                  : base==='포도'?'효과: 5% 확률 상위 등급 등장'
+                 : base==='코코넛'?'효과: 클릭수 ×2 · 드롭 확률 ×2'
                  : base==='레몬'?'효과: 50% 확률 과일 2배 지급'
-                 : base==='할머니가 숨겨둔 감'?'효과: 클릭수 ×2 · 드롭 확률 ×2'
+                 : base==='할머니가 숨겨둔 감'?'효과: 0.3% 확률 과일 2배 지급 · 드롭 확률 ×2.5'
                  : base==='별혼과'?'효과: 드롭 확률 ×3 · 15% 상위 등급 등장':'효과: 없음';
 
     const btn=$('action-btn');
@@ -1562,8 +1610,9 @@ function renderDetail(baseName) {
                  : baseName==='수박' ? '다이아 과일 확률 x1.5'
                  : baseName==='키위' ? '10% 확률 과일 2배 지급'
                  : baseName==='포도' ? '5% 확률 상위 등급 등장'
+                 : baseName==='코코넛' ? '클릭수 x2 · 드롭 확률 x2'
                  : baseName==='레몬' ? '50% 확률 과일 2배 지급'
-                 : baseName==='할머니가 숨겨둔 감' ? '클릭수 x2 · 드롭 확률 x2'
+                 : baseName==='할머니가 숨겨둔 감' ? '0.3% 확률 과일 2배 지급 · 드롭 확률 x2.5'
                  : baseName==='별혼과' ? '드롭 확률 x3 · 15% 상위 등급 등장'
                  : '효과 없음';
 
@@ -1777,8 +1826,9 @@ function equipOpt(fruit, borderColor='transparent', indent=false) {
              : base==='수박'?`다이아 과일 확률 ×1.5 ${tag}`
              : base==='키위'?`10% 확률 과일 2배 지급 ${tag}`
              : base==='포도'?`5% 확률 상위 등급 등장 ${tag}`
+             : base==='코코넛'?`클릭수 ×2 · 드롭 확률 ×2 ${tag}`
              : base==='레몬'?`50% 확률 과일 2배 지급 ${tag}`
-             : base==='할머니가 숨겨둔 감'?`클릭수 ×2 · 드롭 확률 ×2 ${tag}`
+             : base==='할머니가 숨겨둔 감'?`0.3% 확률 과일 2배 지급 · 드롭 확률 ×2.5 ${tag}`
              : base==='별혼과'?`드롭 확률 ×3 · 15% 상위 등급 등장 ${tag}`
              : `효과 없음 ${tag}`;
     const d=document.createElement('div');
