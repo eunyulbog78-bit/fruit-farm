@@ -114,7 +114,8 @@ body { background:#000 !important; }
 .inv-grid {
     display:grid;
     grid-template-columns:repeat(3,minmax(0,1fr));
-    gap:8px;
+    column-gap:8px;
+    row-gap:12px;
 }
 
 .inv-card {
@@ -459,11 +460,11 @@ body { background:#000 !important; }
 .rarity-legend   { background:#2a1400; box-shadow:0 0 24px #ff8f00,0 0 48px #7a4400; }
 /* 신화 – 빨강 */
 .rarity-myth     { background:#2a0808; box-shadow:0 0 24px #f44336,0 0 48px #7a0000; }
-/* 불멸 – 빛나는 검정 */
-.rarity-immortal { background:#050505; animation:immortalGlow 2s ease-in-out infinite; }
+/* 불멸 – 진한 심홍 */
+.rarity-immortal { background:#140000; animation:immortalGlow 2s ease-in-out infinite; }
 @keyframes immortalGlow {
-    0%,100% { box-shadow:0 0 10px #222,0 0 25px #111; }
-    50%     { box-shadow:0 0 30px #555,0 0 60px #333; }
+    0%,100% { box-shadow:0 0 10px #330000,0 0 25px #1a0000; }
+    50%     { box-shadow:0 0 30px #7a0000,0 0 60px #3a0000; }
 }
 /* 비밀 – 별빛 우주 그라데이션 */
 .rarity-secret {
@@ -715,6 +716,7 @@ const BASE_FRUITS = [
     { name:'수박', emoji:'🍉', price:500, rate:0.7, rarity:'영웅' },
     { name:'키위', emoji:'🥝', price:450, rate:0.8, rarity:'영웅' },
     { name:'포도', emoji:'🍇', price:1000,      rate:0.5,      rarity:'전설' },
+    { name:'귤', emoji:'🍊', price:900,       rate:0.6,      rarity:'전설' },
     { name:'코코넛', emoji:'🥥', price:200000,    rate:0.001,    rarity:'신화' },
     { name:'레몬', emoji:'🍋', price:200000,    rate:0.001,    rarity:'신화' },
     { name:'할머니가 숨겨둔 감', emoji:'🍊', price:1000000,  rate:0.00005,  rarity:'불멸' },
@@ -732,7 +734,7 @@ const RARITY = {
     '영웅': { label:'영웅', en:'HERO',      color:'#ce93d8', badgeBg:'#4a0072', cardClass:'rarity-hero',      unreleased:false, startPrice:400      },
     '전설': { label:'전설', en:'LEGEND',    color:'#ffb300', badgeBg:'#5a3000', cardClass:'rarity-legend',    unreleased:false, startPrice:1000     },
     '신화': { label:'신화', en:'MYTHIC',    color:'#ef5350', badgeBg:'#5a0000', cardClass:'rarity-myth',      unreleased:false, startPrice:200000   },
-    '불멸': { label:'불멸', en:'IMMORTAL',  color:'#bbb',    badgeBg:'#111',    cardClass:'rarity-immortal',  unreleased:false, startPrice:1000000  },
+    '불멸': { label:'불멸', en:'IMMORTAL',  color:'#7a0000', badgeBg:'#220000', cardClass:'rarity-immortal',  unreleased:false, startPrice:1000000  },
     '비밀': { label:'비밀', en:'SECRET',    color:'#fff',    badgeBg:'#222',    cardClass:'rarity-secret',    unreleased:false, startPrice:100000000},
 };
 // 등급별 드롭 확률 (이 확률로 등급 결정 → 그 등급 내에서 랜덤 과일 선택)
@@ -1301,6 +1303,7 @@ function showDurian() {
 }
 
 function checkDurian() {
+    if (G.eqBase === '귤') return false;
     if (Math.random() * 100 >= 0.5) return false;
     showDurian();
     return true;
@@ -1512,7 +1515,7 @@ const RARITY_APP_BG = {
     '영웅':   { appBg:'linear-gradient(135deg,#1a0828,#0d0414)', btnBg:'#1a0828', border:'#ce93d8' },
     '전설':   { appBg:'linear-gradient(135deg,#2a1800,#120b00)', btnBg:'#2a1800', border:'#ffb300' },
     '신화':   { appBg:'linear-gradient(135deg,#2a0808,#120404)', btnBg:'#2a0808', border:'#ef5350' },
-    '불멸':   { appBg:'linear-gradient(135deg,#050505,#000)',    btnBg:'#050505', border:'#888'    },
+    '불멸':   { appBg:'linear-gradient(135deg,#1a0000,#050000)', btnBg:'#1a0000', border:'#7a0000' },
     '비밀':   { appBg:'linear-gradient(135deg,#000a18,#000)',   btnBg:'#000a18', border:'#4af'    },
 };
 
@@ -1522,6 +1525,7 @@ function updateEquip() {
                  : base==='수박'?'효과: 다이아 과일 확률 ×1.5'
                  : base==='키위'?'효과: 10% 확률 과일 2배 지급'
                  : base==='포도'?'효과: 5% 확률 상위 등급 등장'
+                 : base==='귤'?'효과: 두리안 도둑 미등장'
                  : base==='코코넛'?'효과: 클릭수 ×2 · 드롭 확률 ×2'
                  : base==='레몬'?'효과: 50% 확률 과일 2배 지급'
                  : base==='할머니가 숨겨둔 감'?'효과: 0.3% 확률 과일 2배 지급 · 드롭 확률 ×2.5'
@@ -1630,6 +1634,7 @@ function renderDetail(baseName) {
                  : baseName==='수박' ? '다이아 과일 확률 x1.5'
                  : baseName==='키위' ? '10% 확률 과일 2배 지급'
                  : baseName==='포도' ? '5% 확률 상위 등급 등장'
+                 : baseName==='귤' ? '두리안 도둑 미등장'
                  : baseName==='코코넛' ? '클릭수 x2 · 드롭 확률 x2'
                  : baseName==='레몬' ? '50% 확률 과일 2배 지급'
                  : baseName==='할머니가 숨겨둔 감' ? '0.3% 확률 과일 2배 지급 · 드롭 확률 x2.5'
@@ -1669,9 +1674,11 @@ function renderDetail(baseName) {
     $('detail-content').innerHTML = `
         ${mainDisplay}
         <div style="font-size:26px;font-weight:bold;color:#fff;margin-bottom:10px">${f.name}</div>
-        <div class="rarity-badge" style="background:${r.badgeBg};color:${r.color};
-             border:2px solid ${r.color};box-shadow:0 0 12px ${r.color};
-             font-size:15px;padding:5px 18px;margin-bottom:18px">
+           <div class="rarity-badge" style="background:transparent;color:${r.color};
+               border:none;border-radius:0;box-shadow:none;
+               -webkit-text-stroke:1px #000;text-shadow:0 0 1px #000;
+               font-weight:900;letter-spacing:.8px;
+               font-size:17px;padding:5px 18px;margin-bottom:18px">
             ${r.label}
         </div>
         <div style="background:rgba(0,0,0,.45);border-radius:10px;padding:14px 18px;font-size:15px;line-height:2;margin-bottom:12px">
@@ -1697,49 +1704,60 @@ function renderInv() {
     const list=$('inv-list');
     list.innerHTML='';
 
-    const ordered = RARITY_ORDER.flatMap(rarityKey =>
-        BASE_FRUITS.filter(f => f.rarity === rarityKey)
-    );
-
     const grid = document.createElement('div');
     grid.className = 'inv-grid';
+    let firstSection = true;
 
-    for (const f of ordered) {
-        const baseCount = G.inventory[f.name] || 0;
-        const goldCount = G.inventory[GOLD + f.name] || 0;
-        const diaCount = G.inventory[DIA + f.name] || 0;
-        const total = baseCount + goldCount + diaCount;
-        const isOpen = !!expanded.inv[f.name];
-        const plainEmoji = G.emoji[f.name] || f.name;
+    for (const rarityKey of RARITY_ORDER) {
+        const rarity = RARITY[rarityKey];
+        const fruits = BASE_FRUITS.filter(f => f.rarity === rarityKey);
+        if (!fruits.length) continue;
 
-        const card = document.createElement('div');
-        card.className = 'inv-card';
-        card.innerHTML = `
-            <div style="display:flex;align-items:stretch;gap:8px;min-height:100%;flex:1;">
-                <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px;">
-                    <button class="toggle-btn inv-more" data-name="${f.name}" style="width:100%">${isOpen ? '접기' : '더보기'}</button>
-                    <button class="detail-btn" data-name="${f.name}" style="width:100%">자세히</button>
-                </div>
-                <div style="flex:1.25;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;text-align:center;gap:4px;min-width:0;">
-                    <span style="font-size:40px;line-height:1">${plainEmoji}</span>
-                    <span style="font-size:13px;line-height:1.25;white-space:normal;word-break:keep-all;overflow-wrap:anywhere;">${f.name}</span>
-                    <div style="color:#90ee90;font-size:11px;font-weight:bold">총 ${total.toLocaleString()}개</div>
-                    <div style="color:#aaa;font-size:11px">기본 ${baseCount.toLocaleString()}개</div>
-                    <div class="inv-extra" style="display:${isOpen ? 'block' : 'none'}">
-                        <div style="color:#ffd700;font-size:11px">황금 ${goldCount.toLocaleString()}개</div>
-                        <div style="color:#7fdcff;font-size:11px">다이아 ${diaCount.toLocaleString()}개</div>
+        const header = document.createElement('div');
+        header.style.cssText = `grid-column:1 / -1;display:flex;align-items:center;gap:6px;${firstSection ? 'margin-top:0;' : 'margin-top:10px;'}`;
+        header.innerHTML = `
+            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${rarity.color};box-shadow:0 0 6px ${rarity.color};"></span>
+            <span style="color:${rarity.color};font-size:13px;font-weight:900;letter-spacing:.4px;">${rarityKey}</span>`;
+        grid.appendChild(header);
+        firstSection = false;
+
+        for (const f of fruits) {
+            const baseCount = G.inventory[f.name] || 0;
+            const goldCount = G.inventory[GOLD + f.name] || 0;
+            const diaCount = G.inventory[DIA + f.name] || 0;
+            const total = baseCount + goldCount + diaCount;
+            const isOpen = !!expanded.inv[f.name];
+            const plainEmoji = G.emoji[f.name] || f.name;
+
+            const card = document.createElement('div');
+            card.className = 'inv-card';
+            card.innerHTML = `
+                <div style="display:flex;align-items:stretch;gap:8px;min-height:100%;flex:1;">
+                    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px;">
+                        <button class="toggle-btn inv-more" data-name="${f.name}" style="width:100%">${isOpen ? '접기' : '더보기'}</button>
+                        <button class="detail-btn" data-name="${f.name}" style="width:100%">자세히</button>
+                    </div>
+                    <div style="flex:1.25;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;text-align:center;gap:4px;min-width:0;">
+                        <span style="font-size:40px;line-height:1">${plainEmoji}</span>
+                        <span style="font-size:13px;line-height:1.25;white-space:normal;word-break:keep-all;overflow-wrap:anywhere;">${f.name}</span>
+                        <div style="color:#90ee90;font-size:11px;font-weight:bold">총 ${total.toLocaleString()}개</div>
+                        <div style="color:#aaa;font-size:11px">기본 ${baseCount.toLocaleString()}개</div>
+                        <div class="inv-extra" style="display:${isOpen ? 'block' : 'none'}">
+                            <div style="color:#ffd700;font-size:11px">황금 ${goldCount.toLocaleString()}개</div>
+                            <div style="color:#7fdcff;font-size:11px">다이아 ${diaCount.toLocaleString()}개</div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            `;
+                `;
 
-        card.querySelector('.inv-more').onclick = (e)=>{
-            e.stopPropagation();
-            expanded.inv[f.name] = !isOpen;
-            renderInv();
-        };
-        card.querySelector('.detail-btn').onclick = (e)=>{ e.stopPropagation(); renderDetail(f.name); };
-        grid.appendChild(card);
+            card.querySelector('.inv-more').onclick = (e)=>{
+                e.stopPropagation();
+                expanded.inv[f.name] = !isOpen;
+                renderInv();
+            };
+            card.querySelector('.detail-btn').onclick = (e)=>{ e.stopPropagation(); renderDetail(f.name); };
+            grid.appendChild(card);
+        }
     }
 
     list.appendChild(grid);
@@ -1836,6 +1854,7 @@ function equipOpt(fruit, borderColor='transparent', indent=false) {
              : base==='수박'?`다이아 과일 확률 ×1.5 ${tag}`
              : base==='키위'?`10% 확률 과일 2배 지급 ${tag}`
              : base==='포도'?`5% 확률 상위 등급 등장 ${tag}`
+             : base==='귤'?`두리안 도둑 미등장 ${tag}`
              : base==='코코넛'?`클릭수 ×2 · 드롭 확률 ×2 ${tag}`
              : base==='레몬'?`50% 확률 과일 2배 지급 ${tag}`
              : base==='할머니가 숨겨둔 감'?`0.3% 확률 과일 2배 지급 · 드롭 확률 ×2.5 ${tag}`
@@ -2010,7 +2029,15 @@ $('btn-friends').onclick      = ()=>{ renderFriends(); openModal('modal-friends'
 $('btn-friends-close').onclick= ()=>{ closeModal('modal-friends'); };
 $('btn-trade-close').onclick  = ()=>{ closeModal('modal-trade'); };
 
-$('btn-inv-open').onclick  = ()=>{ expanded.inv={}; renderInv(); openModal('modal-inv'); };
+$('btn-inv-open').onclick  = ()=>{
+    expanded.inv={};
+    renderInv();
+    openModal('modal-inv');
+    const invBox = document.querySelector('#modal-inv .modal-box');
+    if (invBox) invBox.scrollTop = 0;
+    const invList = $('inv-list');
+    if (invList) invList.scrollTop = 0;
+};
 $('btn-inv-close').onclick = ()=>   closeModal('modal-inv');
 
 $('btn-mkt-open').onclick  = ()=>{ expanded.mkt={}; renderMkt(); openModal('modal-mkt'); };
