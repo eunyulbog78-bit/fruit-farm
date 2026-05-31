@@ -1134,8 +1134,22 @@ async function isNicknameTaken(nick) {
     return nick in r && r[nick] !== getSessionId();
 }
 async function registerNickname(nick) {
-    if (FB) await FB.set(`reg/${encN(nick)}`, getSessionId());
+    if (FB) {
+        await FB.set(`reg/${encN(nick)}`, getSessionId());
+        await FB.set(`session/${encN(nick)}`, getSessionId()); // 현재 활성 세션 등록
+    }
     const r = getNicknameRegistry(); r[nick] = getSessionId(); localStorage.setItem('fruitFarm4_registry', JSON.stringify(r));
+}
+async function checkActiveSession() {
+    if (!G.nickname || !FB) return;
+    const active = await FB.get(`session/${encN(G.nickname)}`);
+    if (active === null || typeof active === 'object') return; // Firebase 오류면 무시
+    if (active !== getSessionId()) {
+        // 다른 기기가 이 계정으로 로그인함
+        G.nickname = ''; G.save();
+        alert('📱 다른 기기에서 로그인하여 자동 로그아웃 되었습니다.');
+        show('scr-start');
+    }
 }
 
 // ── 우편함 ─────────────────────────────────────────────────────
@@ -2322,7 +2336,7 @@ $('btn-load-save-code').onclick = async ()=>{
         delete data._savedAt;
         localStorage.setItem('fruitFarm4', JSON.stringify(data));
         // 이 기기의 세션 ID를 불러온 닉네임의 소유자로 등록 (실패해도 진행)
-        try { await registerNickname(data.nickname); } catch {}
+        try { await registerNickname(data.nickname); } catch {} // 세션 등록 (기존 기기 로그아웃 유도)
         location.reload();
     } catch(e) { toast('불러오기 실패. 인터넷 연결 확인'); btn.textContent='📥 이 코드로 불러오기'; btn.disabled=false; }
 };
@@ -2351,6 +2365,7 @@ function startGame() {
     }
     setInterval(()=>{ if(G.checkDay()){G.save();refreshMain();} }, 30000);
     setInterval(()=>{ processMailbox(); updateFriendBadge(); }, 5000);
+    setInterval(checkActiveSession, 20000); // 20초마다 세션 확인
 }
 
 startGame();
