@@ -727,6 +727,9 @@ const DIA  = '다이아몬드 ';
 const JUICE_PRICE       = 5000;
 const TITLE_GABBU_PRICE = 1000000;
 const TITLE_ELON_PRICE  = 100000000;
+const BLUE_POTION_PRICE = 25000;
+const RED_POTION_PRICE  = 100000;
+const BLUE_POTION_MS    = 10 * 60 * 1000;
 
 // 등급 설정 (startPrice: 해당 등급 과일의 기본 시작 가격)
 const RARITY = {
@@ -778,6 +781,8 @@ const G = {
     nickname:'', gold:0, day:1, clickCount:0,
     equippedFruit:null, activeBackground:'normal',
     juicePurchased:false,
+    bluePotionCount:0, redPotionCount:0,
+    bluePotionUntil:0, redPotionPending:false,
     ownedTitles:[], equippedTitle:null,
     lastDate:new Date().toDateString(),
     emoji:{...cat.emoji}, prices:{...cat.prices},
@@ -791,6 +796,8 @@ const G = {
             clickCount:this.clickCount, equippedFruit:this.equippedFruit,
             activeBackground:this.activeBackground,
             juicePurchased:this.juicePurchased,
+            bluePotionCount:this.bluePotionCount, redPotionCount:this.redPotionCount,
+            bluePotionUntil:this.bluePotionUntil, redPotionPending:this.redPotionPending,
             ownedTitles:this.ownedTitles, equippedTitle:this.equippedTitle,
             lastDate:this.lastDate,
             prices:this.prices, inventory:this.inventory,
@@ -812,6 +819,10 @@ const G = {
         if (d.friends)         this.friends         = d.friends;
         if (d.pendingRequests) this.pendingRequests = d.pendingRequests;
         if (d.tradeOffers)     this.tradeOffers     = d.tradeOffers;
+        this.bluePotionCount = d.bluePotionCount || 0;
+        this.redPotionCount = d.redPotionCount || 0;
+        this.bluePotionUntil = d.bluePotionUntil || 0;
+        this.redPotionPending = !!d.redPotionPending;
     },
     processPendingOrders() {
         const now = Date.now();
@@ -847,9 +858,35 @@ const G = {
     isGold(fruit) { return !!(fruit && fruit.startsWith(GOLD)); },
     isDia(fruit)  { return !!(fruit && fruit.startsWith(DIA)); },
     isMut(fruit)  { return this.isGold(fruit) || this.isDia(fruit); },
+    get isBluePotionActive() { return Date.now() < this.bluePotionUntil; },
     get eqBase() { return this.base(this.equippedFruit); },
 
     registerClick() { this.clickCount += this.eqBase==='코코넛' ? 2 : 1; },
+
+    buyBluePotion() {
+        if (this.gold < BLUE_POTION_PRICE) return false;
+        this.gold -= BLUE_POTION_PRICE;
+        this.bluePotionCount += 1;
+        return true;
+    },
+    useBluePotion() {
+        if (this.bluePotionCount <= 0) return false;
+        this.bluePotionCount -= 1;
+        this.bluePotionUntil = Date.now() + BLUE_POTION_MS;
+        return true;
+    },
+    buyRedPotion() {
+        if (this.gold < RED_POTION_PRICE) return false;
+        this.gold -= RED_POTION_PRICE;
+        this.redPotionCount += 1;
+        return true;
+    },
+    useRedPotion() {
+        if (this.redPotionCount <= 0) return false;
+        this.redPotionCount -= 1;
+        this.redPotionPending = true;
+        return true;
+    },
 
     tryGetFruit() {
         // 1. 등급 추첨 (등급별 확률)
@@ -858,6 +895,35 @@ const G = {
                : this.eqBase==='할머니가 숨겨둔 감' ? 2.5
                : this.eqBase==='별혼과'          ? 3 : 1;
         const rarityRates = Object.entries(RARITY_RATES).map(([rarity, rate]) => [rarity, rate * mult]);
+
+        if (this.isBluePotionActive) {
+            for (const pair of rarityRates) {
+                if (['전설','신화','불멸','비밀'].includes(pair[0])) pair[1] *= 1.5;
+            }
+        }
+
+        const mythicBonus = Math.floor(this.clickCount / 10000) * 0.05;
+        if (mythicBonus > 0) {
+            const idxs = [];
+            let mythicBaseTotal = 0;
+            for (let i = 0; i < rarityRates.length; i++) {
+                if (['신화','불멸','비밀'].includes(rarityRates[i][0])) {
+                    idxs.push(i);
+                    mythicBaseTotal += rarityRates[i][1];
+                }
+            }
+            if (idxs.length) {
+                if (mythicBaseTotal > 0) {
+                    for (const i of idxs) {
+                        rarityRates[i][1] += mythicBonus * (rarityRates[i][1] / mythicBaseTotal);
+                    }
+                } else {
+                    const per = mythicBonus / idxs.length;
+                    for (const i of idxs) rarityRates[i][1] += per;
+                }
+            }
+        }
+
         const roll = Math.random() * 100;
         let cum = 0, pickedRarity = null;
         for (const [rarity, rate] of rarityRates) {
@@ -886,6 +952,12 @@ const G = {
         if (got && this.eqBase==='별혼과' && Math.random()<0.15) {
             const up = upgradeRarity(got); if (up) got=up;
         }
+
+        if (got && this.redPotionPending) {
+            got = GOLD + this.base(got);
+            this.redPotionPending = false;
+        }
+
         // 키위 능력: 10% 확률로 2배 지급, 레몬 능력: 50% 확률로 2배 지급, 감 능력: 0.3% 확률로 2배 지급
         const count = (got && this.eqBase==='키위' && Math.random()<0.1) ? 2
             : (got && this.eqBase==='레몬' && Math.random()<0.5) ? 2
@@ -1465,6 +1537,12 @@ function refreshMain() {
     $('lbl-gold').textContent = `💰 골드: ${G.gold.toLocaleString()}`;
     $('lbl-clicks').textContent = `👆 클릭: ${G.clickCount.toLocaleString()}회`;
 
+    const clickBonus = Math.floor(G.clickCount / 10000) * 0.05;
+    const blueRemainSec = Math.max(0, Math.ceil((G.bluePotionUntil - Date.now()) / 1000));
+    const blueText = G.isBluePotionActive ? ` | 🔵 블루 포션 ${Math.floor(blueRemainSec / 60)}:${String(blueRemainSec % 60).padStart(2, '0')}` : '';
+    const redText = G.redPotionPending ? ' | 🔴 레드 포션 대기중' : '';
+    $('lbl-clicks').textContent += ` | 신화+ 보너스 +${clickBonus.toFixed(2)}%${blueText}${redText}`;
+
     // 칭호 표시
     const titleEl = $('lbl-title');
     if (G.equippedTitle && TITLES[G.equippedTitle]) {
@@ -1941,6 +2019,11 @@ function renderShop() {
     const list = $('shop-list');
     list.innerHTML = '';
 
+    const blueRemainSec = Math.max(0, Math.ceil((G.bluePotionUntil - Date.now()) / 1000));
+    const blueRemainText = G.isBluePotionActive
+        ? `활성 중 (${Math.floor(blueRemainSec / 60)}:${String(blueRemainSec % 60).padStart(2, '0')} 남음)`
+        : '비활성';
+
     const items = [
         {
             id:'title-gabbu', icon:'👑', name:'갑부 칭호',
@@ -1962,6 +2045,28 @@ function renderShop() {
             onUse:  ()=>{ G.equippedTitle='일론 머스크'; G.save(); renderShop(); refreshMain(); },
             onOff:  ()=>{ G.equippedTitle=null; G.save(); renderShop(); refreshMain(); },
         },
+        {
+            id:'blue-potion', icon:'🔵', name:'블루 포션',
+            desc:`10분 동안 전설 등급 이상 확률 1.5배 (${blueRemainText})`,
+            price:BLUE_POTION_PRICE,
+            owned: G.bluePotionCount > 0,
+            active: G.isBluePotionActive,
+            qty: G.bluePotionCount,
+            onBuy: ()=>{ if (G.buyBluePotion()) { G.save(); renderShop(); refreshMain(); } },
+            onUse: ()=>{ if (G.useBluePotion()) { G.save(); renderShop(); refreshMain(); } },
+            onOff: null,
+        },
+        {
+            id:'red-potion', icon:'🔴', name:'레드 포션',
+            desc:`사용 후 처음 나온 과일을 황금 버전으로 변환 (${G.redPotionPending ? '대기 중' : '비활성'})`,
+            price:RED_POTION_PRICE,
+            owned: G.redPotionCount > 0,
+            active: G.redPotionPending,
+            qty: G.redPotionCount,
+            onBuy: ()=>{ if (G.buyRedPotion()) { G.save(); renderShop(); refreshMain(); } },
+            onUse: ()=>{ if (G.useRedPotion()) { G.save(); renderShop(); refreshMain(); } },
+            onOff: null,
+        },
     ];
 
     for (const it of items) {
@@ -1975,18 +2080,29 @@ function renderShop() {
                     <div style="font-weight:bold;font-size:15px">${it.name}</div>
                     <div style="color:#777;font-size:12px">${it.desc}</div>
                 </div>
-                ${it.owned?'<span style="color:#0f0;font-size:12px">✔ 보유</span>':`<span style="color:#ffd700;font-size:13px">${it.price.toLocaleString()}G</span>`}
+                ${typeof it.qty === 'number'
+                    ? `<span style="color:#0f0;font-size:12px">보유 ${it.qty}개</span>`
+                    : it.owned
+                        ? '<span style="color:#0f0;font-size:12px">✔ 보유</span>'
+                        : `<span style="color:#ffd700;font-size:13px">${it.price.toLocaleString()}G</span>`}
             </div>
             <div style="display:flex;gap:8px">
-                ${!it.owned
+                ${it.id.includes('potion')
                     ? `<button class="btn" id="shop-buy-${it.id}" ${canBuy?'':'disabled'}
                            style="flex:1;background:${canBuy?'#1a5c8a':'#333'};color:${canBuy?'#fff':'#555'};font-size:13px;padding:9px 0">
-                           ${canBuy?`구매 (${it.price.toLocaleString()}G)`:`골드 부족`}</button>`
-                    : it.active
-                        ? `<button class="btn" id="shop-off-${it.id}"
-                               style="flex:1;background:#333;color:#aaa;font-size:13px;padding:9px 0">해제</button>`
-                        : `<button class="btn" id="shop-use-${it.id}"
-                               style="flex:1;background:#2a6a2a;color:#fff;font-size:13px;padding:9px 0">장착</button>`
+                           ${canBuy?`구매 (${it.price.toLocaleString()}G)`:`골드 부족`}</button>
+                       <button class="btn" id="shop-use-${it.id}" ${(it.qty||0)>0?'':'disabled'}
+                           style="flex:1;background:${(it.qty||0)>0?'#2a6a2a':'#333'};color:${(it.qty||0)>0?'#fff':'#555'};font-size:13px;padding:9px 0">
+                           사용</button>`
+                    : !it.owned
+                        ? `<button class="btn" id="shop-buy-${it.id}" ${canBuy?'':'disabled'}
+                               style="flex:1;background:${canBuy?'#1a5c8a':'#333'};color:${canBuy?'#fff':'#555'};font-size:13px;padding:9px 0">
+                               ${canBuy?`구매 (${it.price.toLocaleString()}G)`:`골드 부족`}</button>`
+                        : it.active
+                            ? `<button class="btn" id="shop-off-${it.id}"
+                                   style="flex:1;background:#333;color:#aaa;font-size:13px;padding:9px 0">해제</button>`
+                            : `<button class="btn" id="shop-use-${it.id}"
+                                   style="flex:1;background:#2a6a2a;color:#fff;font-size:13px;padding:9px 0">장착</button>`
                 }
             </div>`;
         list.appendChild(div);
