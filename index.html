@@ -53,17 +53,7 @@ body { background:#000 !important; }
     overflow:hidden;
     box-shadow:0 0 40px rgba(0,0,0,.8);
 }
-.app::before {
-    content:''; position:absolute; inset:0;
-    background: linear-gradient(170deg, rgba(255,200,230,.11) 0%, rgba(255,255,255,.04) 20%, transparent 45%),
-                linear-gradient(to bottom, rgba(255,255,255,.06) 0%, transparent 18%);
-    pointer-events:none; z-index:1; border-radius:inherit;
-}
-.app::after {
-    content:''; position:absolute; top:-10%; left:25%; width:50%; height:80%;
-    background:linear-gradient(175deg, rgba(255,160,200,.07) 0%, transparent 70%);
-    transform:rotate(-12deg) skewX(-8deg); pointer-events:none; z-index:1;
-}
+.app::before, .app::after { content:none; }
 @keyframes juiceShift {
     0%,100% { filter:hue-rotate(0deg)   brightness(1)    saturate(1.4); }
     30%     { filter:hue-rotate(22deg)  brightness(1.18) saturate(1.65); }
