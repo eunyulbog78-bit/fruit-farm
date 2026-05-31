@@ -1110,14 +1110,20 @@ const FB = FIREBASE_URL ? {
 function encN(s){ return s.replace(/[.#$[\]/]/g,'_'); }
 
 // ── 닉네임 레지스트리 ──────────────────────────────────────────
+// 기기마다 고유한 세션 ID로 "내 닉네임"을 구분
+function getSessionId() {
+    let id = localStorage.getItem('fruitFarm4_sid');
+    if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('fruitFarm4_sid', id); }
+    return id;
+}
 function getNicknameRegistry() { return JSON.parse(localStorage.getItem('fruitFarm4_registry')||'{}'); }
 async function isNicknameTaken(nick) {
-    if (FB) { const v=await FB.get(`reg/${encN(nick)}`); return v!==null && v!==G.nickname; }
-    const r=getNicknameRegistry(); return nick in r && r[nick]!==G.nickname;
+    if (FB) { const v = await FB.get(`reg/${encN(nick)}`); return v !== null && v !== getSessionId(); }
+    const r = getNicknameRegistry(); return nick in r && r[nick] !== getSessionId();
 }
 async function registerNickname(nick) {
-    if (FB) await FB.set(`reg/${encN(nick)}`, Date.now());
-    const r=getNicknameRegistry(); r[nick]=Date.now(); localStorage.setItem('fruitFarm4_registry',JSON.stringify(r));
+    if (FB) await FB.set(`reg/${encN(nick)}`, getSessionId());
+    const r = getNicknameRegistry(); r[nick] = getSessionId(); localStorage.setItem('fruitFarm4_registry', JSON.stringify(r));
 }
 
 // ── 우편함 ─────────────────────────────────────────────────────
@@ -2298,14 +2304,14 @@ $('btn-load-save-code').onclick = async ()=>{
     try {
         const res = await fetch(`${FIREBASE_URL}/saves/${code}.json`);
         const data = await res.json();
-        if (!data || data === 'null') { toast('코드를 찾을 수 없습니다'); return; }
-        if (!confirm(`"${data.nickname}" 의 세이브를 불러오면\n현재 데이터가 덮어씌워집니다.\n계속할까요?`)) return;
+        if (!data || data === 'null') { toast('코드를 찾을 수 없습니다'); btn.textContent='📥 이 코드로 불러오기'; btn.disabled=false; return; }
+        if (!confirm(`"${data.nickname}" 의 세이브를 불러오면\n현재 데이터가 덮어씌워집니다.\n계속할까요?`)) { btn.textContent='📥 이 코드로 불러오기'; btn.disabled=false; return; }
+        delete data._savedAt;
         localStorage.setItem('fruitFarm4', JSON.stringify(data));
-        closeModal('modal-sync');
-        toast('불러오기 완료! 재시작합니다...');
-        setTimeout(()=> location.reload(), 1200);
-    } catch(e) { toast('불러오기 실패. 인터넷 연결 확인'); }
-    btn.textContent = '📥 이 코드로 불러오기'; btn.disabled = false;
+        // 이 기기의 세션 ID를 불러온 닉네임의 소유자로 등록
+        await registerNickname(data.nickname);
+        location.reload();
+    } catch(e) { toast('불러오기 실패. 인터넷 연결 확인'); btn.textContent='📥 이 코드로 불러오기'; btn.disabled=false; }
 };
 $('inp-save-code').addEventListener('input', e=>{
     e.target.value = e.target.value.toUpperCase();
