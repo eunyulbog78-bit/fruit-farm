@@ -739,7 +739,10 @@ const G = {
         for (const f of BASE_FRUITS) {
             const sign = Math.random() < 0.5 ? 1 : -1;
             const ch = sign * (0.01 + Math.random() * 0.04);
-            this.prices[f.name] = Math.max(10, Math.round(this.prices[f.name]*(1+ch)));
+            const nextPrice = Math.max(10, Math.round(this.prices[f.name] * (1 + ch)));
+            const upperLimit = f.price * 1.5;
+            const lowerLimit = f.price * 0.5;
+            this.prices[f.name] = (nextPrice >= upperLimit || nextPrice <= lowerLimit) ? f.price : nextPrice;
             this.prices[GOLD+f.name] = this.prices[f.name]*50;
             this.prices[DIA+f.name]  = this.prices[f.name]*125;
         }
