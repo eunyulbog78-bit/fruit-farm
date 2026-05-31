@@ -841,6 +841,21 @@ function updateFriendBadge() {
 }
 
 // ── 선물 코드 (기기 간 거래) ────────────────────────────────────
+const USED_GIFT_CODES_KEY = 'fruitFarm4_usedGiftCodes';
+function getUsedGiftCodes() {
+    return JSON.parse(localStorage.getItem(USED_GIFT_CODES_KEY) || '[]');
+}
+function hasUsedGiftCode(code) {
+    return getUsedGiftCodes().includes(code);
+}
+function markGiftCodeUsed(code) {
+    const used = getUsedGiftCodes();
+    if (!used.includes(code)) {
+        used.push(code);
+        localStorage.setItem(USED_GIFT_CODES_KEY, JSON.stringify(used));
+    }
+}
+
 function generateGiftCode(items, gold) {
     const data = { v:1, from:G.nickname, items, gold };
     // Deduct immediately
@@ -851,12 +866,17 @@ function generateGiftCode(items, gold) {
 }
 function redeemGiftCode(code) {
     try {
-        const data = JSON.parse(decodeURIComponent(atob(code.trim())));
+        const normalizedCode = code.trim();
+        if (!normalizedCode) return alert('코드를 입력하세요.');
+        if (hasUsedGiftCode(normalizedCode)) return alert('❌ 이미 사용한 선물 코드입니다.');
+
+        const data = JSON.parse(decodeURIComponent(atob(normalizedCode)));
         let msg = `🎁 ${data.from || '?'}의 선물!\n`;
         if (data.gold > 0) { G.gold += data.gold; msg += `💰 ${data.gold.toLocaleString()}G\n`; }
         for (const [f,c] of Object.entries(data.items || {})) {
             if (c > 0) { G.addFruit(f,c); msg += `${G.emoji[f]||f} ${f} ${c}개\n`; }
         }
+        markGiftCodeUsed(normalizedCode);
         G.save(); refreshMain();
         alert(msg + '\n✅ 수령 완료!');
     } catch { alert('❌ 유효하지 않은 코드입니다.'); }
