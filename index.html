@@ -1258,7 +1258,7 @@ const RARITY_APP_BG = {
 function updateEquip() {
     const f=G.equippedFruit, emoji=f?G.emoji[f]:'🧺', base=G.eqBase;
     const effect = base==='딸기'?'효과: 드롭 확률 ×1.1'
-                 : base==='수박'?'효과: 다이아 열매 확률 ×1.5'
+                 : base==='수박'?'효과: 다이아 과일 확률 ×1.5'
                  : base==='포도'?'효과: 5% 확률 상위 등급 등장'
                  : base==='레몬'?'효과: 50% 확률 과일 2배 지급'
                  : base==='할머니가 숨겨운 감'?'효과: 클릭수 ×2 · 드롭 확률 ×2'
@@ -1427,7 +1427,7 @@ function renderInv() {
         header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#1a1a1a;cursor:pointer;border-left:3px solid ${r.color}`;
         header.innerHTML=`
             <span class="rarity-badge" style="background:${r.badgeBg};color:${r.color};border:1px solid ${r.color};font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
-            <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 열매</span>
+            <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 과일</span>
             ${total>0?`<span style="color:#90ee90;font-size:12px">${total}개</span>`:''}
             <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'더보기'}</button>`;
         header.onclick = () => { expanded.inv[rarityKey]=!isOpen; renderInv(); };
@@ -1502,7 +1502,7 @@ function renderMkt() {
         header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#222;cursor:pointer;border-left:3px solid ${r.color}`;
         header.innerHTML=`
             <span class="rarity-badge" style="background:${r.badgeBg};color:${r.color};border:1px solid ${r.color};font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
-            <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 열매</span>
+            <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 과일</span>
             <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'펼치기'}</button>`;
         header.onclick = () => { expanded.mkt[rarityKey]=!isOpen; renderMkt(); };
         content.appendChild(header);
@@ -1558,7 +1558,7 @@ function equipOpt(fruit, borderColor='transparent', indent=false) {
     const base = f ? G.base(f) : '';
     const tag  = G.isDia(f)?'(다이아)':G.isGold(f)?'(황금)':'';
     const fx = base==='딸기'?`드롭 확률 ×1.1 ${tag}`
-             : base==='수박'?`다이아 열매 확률 ×1.5 ${tag}`
+             : base==='수박'?`다이아 과일 확률 ×1.5 ${tag}`
              : base==='포도'?`5% 확률 상위 등급 등장 ${tag}`
              : base==='레몬'?`50% 확률 과일 2배 지급 ${tag}`
              : base==='할머니가 숨겨운 감'?`클릭수 ×2 · 드롭 확률 ×2 ${tag}`
@@ -1592,7 +1592,7 @@ function renderEquip() {
         header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#1a1a1a;cursor:pointer;border-left:3px solid ${r.color}`;
         header.innerHTML=`
             <span class="rarity-badge" style="background:${r.badgeBg};color:${r.color};border:1px solid ${r.color};font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
-            <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 열매</span>
+            <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 과일</span>
             <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'펼치기'}</button>`;
         header.onclick = ()=>{ expanded.equip[rarityKey]=!isOpen; renderEquip(); };
         list.appendChild(header);
