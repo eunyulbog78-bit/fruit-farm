@@ -1402,6 +1402,13 @@ function renderDetail(baseName) {
     const f = BASE_FRUITS.find(b => b.name === baseName);
     if (!f) return;
     const r = RARITY[f.rarity];
+    const ability = baseName==='딸기' ? '드롭 확률 x1.1'
+                 : baseName==='수박' ? '다이아 과일 확률 x1.5'
+                 : baseName==='포도' ? '5% 확률 상위 등급 등장'
+                 : baseName==='레몬' ? '50% 확률 과일 2배 지급'
+                 : baseName==='할머니가 숨겨둔 감' ? '클릭수 x2 · 드롭 확률 x2'
+                 : baseName==='별혼과' ? '드롭 확률 x3 · 15% 상위 등급 등장'
+                 : '효과 없음';
 
     const box = document.querySelector('#modal-detail .modal-box');
     box.className = 'modal-box';
@@ -1435,6 +1442,9 @@ function renderDetail(baseName) {
             <div>기본 시세 &nbsp;<strong style="color:#ffd700">${G.prices[f.name].toLocaleString()} G</strong></div>
             <div><span class="golden" style="font-size:15px">${f.emoji}</span> 황금 &nbsp;<strong style="color:#ffd700">${G.prices[GOLD+f.name].toLocaleString()} G</strong></div>
             <div><span class="diamond" style="font-size:15px">${f.emoji}</span> 다이아 &nbsp;<strong style="color:#00cfff">${G.prices[DIA+f.name].toLocaleString()} G</strong></div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid #444;border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.6;color:#ddd;margin-bottom:12px">
+            <strong style="color:#9be89b">능력</strong> : ${ability}
         </div>
 `;
 
