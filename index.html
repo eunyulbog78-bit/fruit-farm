@@ -1310,7 +1310,8 @@ function checkDurian() {
 }
 
 function showDrop(fruit, count) {
-    const borderColor = G.isDia(fruit) ? '#00cfff' : G.isGold(fruit) ? '#ffd700' : '#4caf50';
+    const rarityInfo = getFruitRarity(G.base(fruit));
+    const borderColor = rarityInfo?.color || '#4caf50';
     const totalPrice = G.prices[fruit] * count;
     const countText = count > 1 ? ` ×${count}` : '';
     const priceText = count > 1
