@@ -86,6 +86,8 @@ body { background:#000 !important; }
         font-size:clamp(80px,20vw,120px) !important;
     }
     .modal-box { padding:16px; max-height:92dvh; }
+    #modal-inv .modal-box { width:100%; max-width:none; max-height:100dvh; border-radius:0; }
+    .inv-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
     .notif-emoji { font-size:clamp(48px,18vw,80px) !important; }
     .notif-name  { font-size:clamp(16px,5vw,22px) !important; }
 }
@@ -104,8 +106,25 @@ body { background:#000 !important; }
 }
 /* 자세히 보기 전용 — 등급 클래스가 덮어씀 */
 #modal-detail .modal-box  { padding:28px 22px; border-radius:0 !important; }
+#modal-inv .modal-box     { max-width:1180px; width:96%; max-height:94dvh; }
 #modal-friends .modal-box { max-width:600px; width:96%; max-height:94dvh; padding:22px 20px; }
 #modal-trade   .modal-box { max-width:560px; width:96%; max-height:92dvh; }
+
+.inv-grid {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:8px;
+}
+
+.inv-card {
+    background:#1a1a1a;
+    border-radius:8px;
+    padding:8px;
+    min-height:132px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+}
 
 #drop-backdrop {
     display:none; position:fixed; inset:0;
@@ -1674,65 +1693,50 @@ const expanded = { inv:{}, mkt:{}, equip:{} };
 const RARITY_ORDER = ['희귀','영웅','전설','신화','불멸','비밀'];
 
 function renderInv() {
-    const list=$('inv-list'); list.innerHTML='';
+    const list=$('inv-list');
+    list.innerHTML='';
 
-    for (const rarityKey of RARITY_ORDER) {
-        const r = RARITY[rarityKey];
-        const fruitsInRarity = BASE_FRUITS.filter(f=>f.rarity===rarityKey);
-        const isOpen = expanded.inv[rarityKey];
+    const ordered = RARITY_ORDER.flatMap(rarityKey =>
+        BASE_FRUITS.filter(f => f.rarity === rarityKey)
+    );
 
-        // 해당 등급 보유 총 개수
-        let total = 0;
-        for (const f of fruitsInRarity) {
-            total += (G.inventory[f.name]||0)+(G.inventory[GOLD+f.name]||0)+(G.inventory[DIA+f.name]||0);
-        }
+    const grid = document.createElement('div');
+    grid.className = 'inv-grid';
 
-        // 등급 헤더
-        const header = document.createElement('div');
-        header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#1a1a1a;cursor:pointer;border-left:3px solid ${r.color}`;
-        header.innerHTML=`
-            <span class="rarity-badge" style="background:${r.badgeBg};color:${r.color};border:1px solid ${r.color};font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
-            <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 과일</span>
-            ${total>0?`<span style="color:#90ee90;font-size:12px">${total}개</span>`:''}
-            <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'더보기'}</button>`;
-        header.onclick = () => { expanded.inv[rarityKey]=!isOpen; renderInv(); };
-        list.appendChild(header);
+    for (const f of ordered) {
+        const rarity = RARITY[f.rarity];
+        const baseCount = G.inventory[f.name] || 0;
+        const goldCount = G.inventory[GOLD + f.name] || 0;
+        const diaCount = G.inventory[DIA + f.name] || 0;
+        const total = baseCount + goldCount + diaCount;
+        const isOpen = !!expanded.inv[f.name];
 
-        if (!isOpen) continue;
+        const card = document.createElement('div');
+        card.className = 'inv-card';
+        card.style.borderLeft = `3px solid ${rarity.color}`;
+        card.innerHTML = `
+            <div style="display:flex;align-items:center;gap:4px;color:#fff;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rarityDot(f.name)}${emojiHtml(f.name)} ${f.name}</div>
+            <div style="color:#90ee90;font-size:11px;font-weight:bold">총 ${total.toLocaleString()}개</div>
+            <div style="color:#aaa;font-size:11px">기본 ${baseCount.toLocaleString()}개</div>
+            <div class="inv-extra" style="display:${isOpen ? 'block' : 'none'}">
+                <div style="color:#ffd700;font-size:11px">황금 ${goldCount.toLocaleString()}개</div>
+                <div style="color:#7fdcff;font-size:11px">다이아 ${diaCount.toLocaleString()}개</div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:auto">
+                <button class="toggle-btn inv-more" data-name="${f.name}" style="flex:1">${isOpen ? '접기' : '더보기'}</button>
+                <button class="detail-btn" data-name="${f.name}" style="flex:1">자세히</button>
+            </div>`;
 
-        if (r.unreleased || fruitsInRarity.length===0) {
-            const msg = document.createElement('div');
-            msg.style.cssText='margin-left:12px;margin-bottom:8px;padding:14px;border-radius:6px;background:#111;color:#555;text-align:center;font-size:13px';
-            msg.textContent='🔒 미출시';
-            list.appendChild(msg);
-            continue;
-        }
-
-        for (const f of fruitsInRarity) {
-            const isSubOpen = expanded.inv[f.name];
-            const row = document.createElement('div');
-            row.style.cssText='display:flex;align-items:center;gap:6px;padding:9px 10px;margin-left:12px;margin-bottom:4px;border-radius:6px;background:#1a1a1a';
-            row.innerHTML=`
-                <span style="flex:1;color:#fff;display:flex;align-items:center">${rarityDot(f.name)}${emojiHtml(f.name)}  ${f.name}</span>
-                <span style="color:#90ee90;font-weight:bold;margin-right:4px">${(G.inventory[f.name]||0).toLocaleString()}개</span>
-                <button class="detail-btn" data-name="${f.name}">자세히</button>
-                <button class="toggle-btn">${isSubOpen?'▲':'▼'}</button>`;
-            row.querySelector('.toggle-btn').onclick = (e)=>{ e.stopPropagation(); expanded.inv[f.name]=!isSubOpen; renderInv(); };
-            row.querySelector('.detail-btn').onclick = (e)=>{ e.stopPropagation(); renderDetail(f.name); };
-            list.appendChild(row);
-
-            if (isSubOpen) {
-                for (const [prefix,color] of [[GOLD,'#ffd700'],[DIA,'#00cfff']]) {
-                    const name=prefix+f.name;
-                    const sub=document.createElement('div');
-                    sub.style.cssText=`display:flex;align-items:center;gap:6px;margin-left:26px;margin-bottom:4px;border-radius:6px;padding:7px 10px;background:#1a1a1a;border-left:3px solid ${color}`;
-                    sub.innerHTML=`<span style="flex:1;color:#fff">${emojiHtml(name)}  ${name}</span>
-                                   <span style="color:#90ee90;font-weight:bold">${(G.inventory[name]||0).toLocaleString()}개</span>`;
-                    list.appendChild(sub);
-                }
-            }
-        }
+        card.querySelector('.inv-more').onclick = (e)=>{
+            e.stopPropagation();
+            expanded.inv[f.name] = !isOpen;
+            renderInv();
+        };
+        card.querySelector('.detail-btn').onclick = (e)=>{ e.stopPropagation(); renderDetail(f.name); };
+        grid.appendChild(card);
     }
+
+    list.appendChild(grid);
 }
 
 // ── 시장 ─────────────────────────────────────────────────────
