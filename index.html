@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>🍎 과일 농장</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -15,46 +15,8 @@ html, body {
 }
 body.juicy { background:linear-gradient(135deg,#1a0a00,#2a0a14); }
 
-/* ══ 과즙 배경 ══════════════════════════════════════════════ */
-body.juicy { background:#05000f; }
-
-.app.juicy {
-    background:
-        /* 빛 산란 */
-        radial-gradient(ellipse 90% 70% at 15% 15%, rgba(255,30,90,.55) 0%, transparent 48%),
-        radial-gradient(ellipse 80% 80% at 85% 80%, rgba(110,0,230,.55) 0%, transparent 48%),
-        radial-gradient(ellipse 70% 55% at 80% 15%, rgba(255,130,0,.45) 0%, transparent 42%),
-        radial-gradient(ellipse 65% 55% at 20% 80%, rgba(200,0,60,.45) 0%, transparent 42%),
-        radial-gradient(ellipse 50% 50% at 50% 45%, rgba(60,0,130,.6) 0%, transparent 55%),
-        /* 깊이 베이스 */
-        linear-gradient(150deg, #140008 0%, #07001c 45%, #110003 100%) !important;
-    animation: juiceShift 9s ease-in-out infinite;
-}
-
-/* 유리 광택 레이어 */
-.app.juicy::before {
-    content:'';
-    position:absolute; inset:0;
-    background:
-        linear-gradient(170deg, rgba(255,200,230,.11) 0%, rgba(255,255,255,.04) 20%, transparent 45%),
-        linear-gradient(to bottom, rgba(255,255,255,.06) 0%, transparent 18%);
-    pointer-events:none; z-index:1; border-radius:inherit;
-}
-
-/* 빛 줄기 */
-.app.juicy::after {
-    content:'';
-    position:absolute; top:-10%; left:25%; width:50%; height:80%;
-    background:linear-gradient(175deg, rgba(255,160,200,.07) 0%, transparent 70%);
-    transform:rotate(-12deg) skewX(-8deg);
-    pointer-events:none; z-index:1;
-}
-
-@keyframes juiceShift {
-    0%,100% { filter:hue-rotate(0deg)   brightness(1)    saturate(1.4); }
-    30%     { filter:hue-rotate(22deg)  brightness(1.18) saturate(1.65); }
-    65%     { filter:hue-rotate(-18deg) brightness(1.12) saturate(1.55); }
-}
+/* ══ 기본 배경 (과즙) ══════════════════════════════════════ */
+body { background:#05000f !important; }
 
 /* 떠오르는 과일 */
 .juice-drop {
@@ -80,20 +42,42 @@ body.juicy { background:#05000f; }
     100% { transform:translateY(-110vh) scale(1.4); opacity:0; }
 }
 
-/* 데스크톱: 정사각형 */
+/* 앱 컨테이너 (과즙 배경 기본) */
 .app {
     width: min(100vw, 100vh);
     height: min(100vw, 100vh);
-    background:#000;
+    background:
+        radial-gradient(ellipse 90% 70% at 15% 15%, rgba(255,30,90,.55) 0%, transparent 48%),
+        radial-gradient(ellipse 80% 80% at 85% 80%, rgba(110,0,230,.55) 0%, transparent 48%),
+        radial-gradient(ellipse 70% 55% at 80% 15%, rgba(255,130,0,.45) 0%, transparent 42%),
+        radial-gradient(ellipse 65% 55% at 20% 80%, rgba(200,0,60,.45) 0%, transparent 42%),
+        radial-gradient(ellipse 50% 50% at 50% 45%, rgba(60,0,130,.6) 0%, transparent 55%),
+        linear-gradient(150deg, #140008 0%, #07001c 45%, #110003 100%);
+    animation: juiceShift 9s ease-in-out infinite;
     position:relative;
     display:flex; flex-direction:column;
     border-radius:12px;
     overflow:hidden;
     box-shadow:0 0 40px rgba(0,0,0,.8);
 }
-body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%); }
+.app::before {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(170deg, rgba(255,200,230,.11) 0%, rgba(255,255,255,.04) 20%, transparent 45%),
+                linear-gradient(to bottom, rgba(255,255,255,.06) 0%, transparent 18%);
+    pointer-events:none; z-index:1; border-radius:inherit;
+}
+.app::after {
+    content:''; position:absolute; top:-10%; left:25%; width:50%; height:80%;
+    background:linear-gradient(175deg, rgba(255,160,200,.07) 0%, transparent 70%);
+    transform:rotate(-12deg) skewX(-8deg); pointer-events:none; z-index:1;
+}
+@keyframes juiceShift {
+    0%,100% { filter:hue-rotate(0deg)   brightness(1)    saturate(1.4); }
+    30%     { filter:hue-rotate(22deg)  brightness(1.18) saturate(1.65); }
+    65%     { filter:hue-rotate(-18deg) brightness(1.12) saturate(1.55); }
+}
 
-.screen { display:none; padding:16px; width:100%; height:100%; flex-direction:column; overflow:hidden; }
+.screen { display:none; padding:16px; width:100%; height:100%; flex-direction:column; overflow:hidden; position:relative; z-index:3; }
 .screen.active { display:flex; }
 
 .btn {
@@ -116,7 +100,7 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
     #action-btn {
         width:clamp(130px,38vw,180px) !important;
         height:clamp(130px,38vw,180px) !important;
-        font-size:clamp(44px,12vw,64px) !important;
+        font-size:clamp(80px,20vw,120px) !important;
     }
     .modal-box { padding:16px; max-height:92dvh; }
     .notif-emoji { font-size:clamp(48px,18vw,80px) !important; }
@@ -136,7 +120,9 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
     overflow-y:auto;
 }
 /* 자세히 보기 전용 — 등급 클래스가 덮어씀 */
-#modal-detail .modal-box { padding:28px 22px; }
+#modal-detail .modal-box  { padding:28px 22px; border-radius:0 !important; }
+#modal-friends .modal-box { max-width:600px; width:96%; max-height:94dvh; padding:22px 20px; }
+#modal-trade   .modal-box { max-width:560px; width:96%; max-height:92dvh; }
 
 #drop-backdrop {
     display:none; position:fixed; inset:0;
@@ -150,7 +136,7 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
     z-index:200; pointer-events:none;
     opacity:0; transition:opacity .2s, transform .2s;
     display:flex; flex-direction:column; align-items:center; gap:10px;
-    background:#111; border-radius:20px;
+    background:#111; border-radius:0;
     padding:24px 36px; border:3px solid #555;
     min-width:240px;
 }
@@ -191,6 +177,75 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
                       drop-shadow(0 0 6px #00cfff) drop-shadow(0 0 14px #aaffff); }
     50%      { filter: hue-rotate(210deg) saturate(6) brightness(1.9)
                       drop-shadow(0 0 18px #00cfff) drop-shadow(0 0 34px #ffffff); }
+}
+/* 별혼과 자세히 - 별신 오비탈 */
+.deity-wrap {
+    position:relative; width:200px; height:200px;
+    margin:0 auto 16px; display:flex;
+    align-items:center; justify-content:center;
+}
+.deity-glow {
+    position:absolute; inset:-15px; border-radius:50%;
+    background:radial-gradient(circle, rgba(100,200,255,.38) 0%, rgba(0,80,255,.18) 42%, transparent 68%);
+    animation:deityPulse 2.5s ease-in-out infinite;
+    pointer-events:none;
+}
+@keyframes deityPulse {
+    0%,100%{ transform:scale(1);   opacity:.7; }
+    50%    { transform:scale(1.28); opacity:1; }
+}
+.deity-main { position:relative; z-index:5; font-size:80px; line-height:1; }
+.deity-star {
+    position:absolute; top:50%; left:50%;
+    width:0; height:0; pointer-events:none;
+}
+.deity-star span {
+    position:absolute;
+    font-size:15px; line-height:1;
+    transform:translate(-50%,-50%);
+    color:#88ddff;
+    filter:drop-shadow(0 0 5px #44aaff) drop-shadow(0 0 12px #0055ff);
+    animation:deityStarGlow 1.8s ease-in-out infinite alternate;
+}
+@keyframes deityStarGlow {
+    from { opacity:.65; filter:drop-shadow(0 0 4px #44aaff) drop-shadow(0 0 8px #0044ff); }
+    to   { opacity:1;   filter:drop-shadow(0 0 9px #88ddff) drop-shadow(0 0 20px #0077ff); }
+}
+/* 내부 궤도 r=52 */
+.ds-a { animation:orbitA 4.5s linear infinite; }
+.ds-b { animation:orbitA 4.5s linear infinite -1.5s; }
+.ds-c { animation:orbitA 4.5s linear infinite -3s; }
+@keyframes orbitA { from{transform:rotate(0deg) translateX(52px)} to{transform:rotate(360deg) translateX(52px)} }
+/* 중간 궤도 r=78 (반대방향) */
+.ds-d { animation:orbitB 6.5s linear infinite; }
+.ds-e { animation:orbitB 6.5s linear infinite -2.17s; }
+.ds-f { animation:orbitB 6.5s linear infinite -4.33s; }
+@keyframes orbitB { from{transform:rotate(0deg) translateX(78px)} to{transform:rotate(-360deg) translateX(78px)} }
+/* 외부 궤도 r=96 */
+.ds-g { animation:orbitC 10s linear infinite; }
+.ds-h { animation:orbitC 10s linear infinite -3.33s; }
+.ds-i { animation:orbitC 10s linear infinite -6.67s; }
+@keyframes orbitC { from{transform:rotate(0deg) translateX(96px)} to{transform:rotate(360deg) translateX(96px)} }
+
+/* 별혼과 이모지 효과 */
+.star-soul {
+    display:inline-block;
+    will-change:transform,filter;
+    animation: starSoulFloat 4s ease-in-out infinite;
+}
+@keyframes starSoulFloat {
+    0%,100% {
+        transform: translateY(0) scale(1);
+        filter: drop-shadow(0 0 6px #44aaff) drop-shadow(0 0 16px #0044ff) drop-shadow(0 0 32px #88ccff);
+    }
+    40% {
+        transform: translateY(-7px) scale(1.09);
+        filter: drop-shadow(0 0 12px #66ddff) drop-shadow(0 0 28px #0066ff) drop-shadow(0 0 56px #cceeff) hue-rotate(22deg);
+    }
+    70% {
+        transform: translateY(-4px) scale(1.05);
+        filter: drop-shadow(0 0 9px #33bbff) drop-shadow(0 0 20px #0044cc) drop-shadow(0 0 42px #aaddff) hue-rotate(-12deg);
+    }
 }
 /* 확장 토글 버튼 */
 .toggle-btn {
@@ -233,13 +288,16 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
     0%,100% { box-shadow:0 0 10px #222,0 0 25px #111; }
     50%     { box-shadow:0 0 30px #555,0 0 60px #333; }
 }
-/* 비밀 – 움직이는 무지개 */
+/* 비밀 – 별빛 우주 그라데이션 */
 .rarity-secret {
-    background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);
-    background-size:400% 100%;
-    animation:rainbowMove 2.5s linear infinite;
+    background: linear-gradient(135deg, #000820, #001848, #000c30, #001540);
+    background-size: 250% 250%;
+    animation: secretShift 5s ease-in-out infinite;
 }
-@keyframes rainbowMove { 0%{background-position:0%} 100%{background-position:400%} }
+@keyframes secretShift {
+    0%,100% { background-position:0% 50%;   box-shadow:0 0 22px #2266ff,0 0 48px #0033cc; }
+    50%     { background-position:100% 50%; box-shadow:0 0 36px #44aaff,0 0 72px #0055ff,0 0 110px #88ccff; }
+}
 
 /* 등급 배지 */
 .rarity-badge {
@@ -252,10 +310,14 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
 
 /* ── 메인 화면 ── */
 #action-btn {
-    font-size:72px; width:200px; height:200px;
-    background:#1e1e1e; border:2px solid #555;
-    border-radius:16px; line-height:1;
-    display:block; margin:0 auto 14px;
+    font-size:120px; width:200px; height:200px;
+    background:none; border:none; border-radius:0;
+    line-height:1; display:block; margin:0 auto 14px;
+    animation: fruitFloat 3s ease-in-out infinite;
+}
+@keyframes fruitFloat {
+    0%,100% { transform:translateY(0)   scale(1);    filter:drop-shadow(0 10px 18px rgba(0,0,0,.7)) drop-shadow(0 4px 6px rgba(0,0,0,.5)); }
+    50%      { transform:translateY(-12px) scale(1.05); filter:drop-shadow(0 22px 28px rgba(0,0,0,.45)) drop-shadow(0 8px 12px rgba(0,0,0,.3)); }
 }
 
 /* scrollbar */
@@ -282,8 +344,9 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
     transition:opacity .5s, transform .5s;
 }
 .durian-char {
-    font-size:64px; line-height:1;
+    line-height:1;
     animation:durianBounce .4s ease-in-out infinite alternate;
+    display:flex; flex-direction:column; align-items:center; gap:1px;
 }
 @keyframes durianBounce {
     0%   { transform:translateY(0) rotate(-5deg); }
@@ -330,20 +393,24 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
     <div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
             <span id="lbl-nick" style="color:#0f0;font-weight:bold;font-size:15px"></span>
-            <button class="btn" id="btn-profile"
-                style="display:none">👤</button>
+            <div style="display:flex;gap:6px;align-items:center">
+                <button class="btn" id="btn-friends"
+                    style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:22px;padding:6px 14px;position:relative">
+                    📦
+                </button>
+                <button class="btn" id="btn-profile" style="display:none">👤</button>
+            </div>
         </div>
         <div id="lbl-title" style="display:none;margin-bottom:4px"></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
             <span id="lbl-gold" style="color:#ffd700;font-weight:bold;font-size:16px"></span>
-            <span id="lbl-day"  style="color:#87ceeb;font-weight:bold;font-size:16px"></span>
         </div>
-        <span id="lbl-clicks" style="color:#aaa;font-size:13px"></span>
+        <span id="lbl-clicks" style="color:#ddd;font-size:15px;font-weight:bold;background:rgba(255,255,255,.06);border:1px solid #444;border-radius:8px;padding:3px 10px"></span>
     </div>
 
     <!-- 중앙: 수확 버튼 -->
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
-        <p style="color:#444;font-size:12px">바구니를 눌러 과일을 수확하세요!</p>
+        <p style="color:#aaa;font-size:12px;border:1px solid #555;border-radius:20px;padding:5px 16px;background:rgba(255,255,255,.05);letter-spacing:.5px">바구니를 눌러 과일을 수확하세요!</p>
         <button class="btn" id="action-btn">🧺</button>
         <span id="lbl-equipped" style="color:#888;font-size:12px;text-align:center"></span>
         <button class="btn" id="btn-equip-open"
@@ -384,13 +451,10 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
 <div class="modal" id="modal-mkt">
     <div class="modal-box">
         <h2 style="color:#ffd700;margin-bottom:6px">🏪 시장</h2>
-        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-            <span id="mkt-day"  style="color:#87ceeb;font-size:13px"></span>
+        <div style="margin-bottom:10px">
             <span id="mkt-gold" style="color:#ffd700;font-size:13px;font-weight:bold"></span>
         </div>
-        <div id="mkt-list"></div>
-        <p style="color:#333;font-size:11px;text-align:center;margin-top:8px">
-            시세는 매일 자정에 자동으로 변동됩니다.</p>
+        <div id="mkt-content"></div>
         <button class="btn" id="btn-mkt-close"
             style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:8px;width:100%">닫기</button>
     </div>
@@ -426,6 +490,26 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
     </div>
 </div>
 
+<!-- 친구 모달 -->
+<div class="modal" id="modal-friends">
+    <div class="modal-box">
+        <h2 style="color:#ffd700;margin-bottom:12px">📦 선물 코드</h2>
+        <div id="friends-content"></div>
+        <button class="btn" id="btn-friends-close"
+            style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:12px;width:100%">닫기</button>
+    </div>
+</div>
+
+<!-- 거래 모달 -->
+<div class="modal" id="modal-trade">
+    <div class="modal-box">
+        <h2 style="color:#ffd700;margin-bottom:12px">🤝 친구와 거래</h2>
+        <div id="trade-content"></div>
+        <button class="btn" id="btn-trade-close"
+            style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:12px;width:100%">닫기</button>
+    </div>
+</div>
+
 <!-- 프로필 모달 -->
 <div class="modal" id="modal-profile">
     <div class="modal-box">
@@ -437,11 +521,25 @@ body.waterdrop .app { background:linear-gradient(135deg,#050a1a 0%,#051432 100%)
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════════
+// 🔥 Firebase 설정 (모든 기기 간 친구/거래 활성화)
+// 1. https://console.firebase.google.com → 프로젝트 만들기
+// 2. Realtime Database → 데이터베이스 만들기 → 테스트 모드
+// 3. 데이터베이스 URL 복사 후 아래에 붙여넣기
+const FIREBASE_URL = ''; // 예: 'https://my-app-default-rtdb.firebaseio.com'
+// ══════════════════════════════════════════════════════════════
+
 // ── 과일 정의 (새 과일은 여기에만 추가) ──────────────────────
 const BASE_FRUITS = [
-    { name:'사과', emoji:'🍎', price:100,    rate:5.0, rarity:'희귀' },
-    { name:'딸기', emoji:'🍓', price:400,    rate:1.0, rarity:'영웅' },
-    { name:'포도', emoji:'🍇', price:1000,   rate:0.5, rarity:'전설' },
+    { name:'사과',   emoji:'🍎', price:100, rate:5.0, rarity:'희귀' },
+    { name:'복숭아', emoji:'🍑', price:150, rate:3.0, rarity:'희귀' },
+    { name:'멜론',   emoji:'🍈', price:120, rate:4.0, rarity:'희귀' },
+    { name:'딸기', emoji:'🍓', price:400, rate:1.0, rarity:'영웅' },
+    { name:'수박', emoji:'🍉', price:500, rate:0.7, rarity:'영웅' },
+    { name:'포도', emoji:'🍇', price:1000,      rate:0.5,      rarity:'전설' },
+    { name:'레몬', emoji:'🍋', price:200000,    rate:0.001,    rarity:'신화' },
+    { name:'할머니가 숨겨운 감', emoji:'🍊', price:1000000,  rate:0.00005,  rarity:'불멸' },
+    { name:'별혼과', emoji:'🌟', price:100000000, rate:0.000001, rarity:'비밀' },
 ];
 const GOLD = '황금 ';
 const DIA  = '다이아몬드 ';
@@ -450,12 +548,12 @@ const TITLE_GABBU_PRICE = 1000000;
 
 // 등급 설정 (startPrice: 해당 등급 과일의 기본 시작 가격)
 const RARITY = {
-    '희귀': { label:'희귀', en:'RARE',      color:'#00c853', badgeBg:'#004d1a', cardClass:'rarity-rare',      unreleased:false, startPrice:100    },
-    '영웅': { label:'영웅', en:'HERO',      color:'#ce93d8', badgeBg:'#4a0072', cardClass:'rarity-hero',      unreleased:false, startPrice:400    },
-    '전설': { label:'전설', en:'LEGEND',    color:'#ffb300', badgeBg:'#5a3000', cardClass:'rarity-legend',    unreleased:false, startPrice:1000   },
-    '신화': { label:'신화', en:'MYTHIC',    color:'#ef5350', badgeBg:'#5a0000', cardClass:'rarity-myth',      unreleased:true,  startPrice:4000   },
-    '불멸': { label:'불멸', en:'IMMORTAL',  color:'#bbb',    badgeBg:'#111',    cardClass:'rarity-immortal',  unreleased:true,  startPrice:20000  },
-    '비밀': { label:'비밀', en:'SECRET',    color:'#fff',    badgeBg:'#222',    cardClass:'rarity-secret',    unreleased:true,  startPrice:100000 },
+    '희귀': { label:'희귀', en:'RARE',      color:'#00c853', badgeBg:'#004d1a', cardClass:'rarity-rare',      unreleased:false, startPrice:100      },
+    '영웅': { label:'영웅', en:'HERO',      color:'#ce93d8', badgeBg:'#4a0072', cardClass:'rarity-hero',      unreleased:false, startPrice:400      },
+    '전설': { label:'전설', en:'LEGEND',    color:'#ffb300', badgeBg:'#5a3000', cardClass:'rarity-legend',    unreleased:false, startPrice:1000     },
+    '신화': { label:'신화', en:'MYTHIC',    color:'#ef5350', badgeBg:'#5a0000', cardClass:'rarity-myth',      unreleased:false, startPrice:200000   },
+    '불멸': { label:'불멸', en:'IMMORTAL',  color:'#bbb',    badgeBg:'#111',    cardClass:'rarity-immortal',  unreleased:false, startPrice:1000000  },
+    '비밀': { label:'비밀', en:'SECRET',    color:'#fff',    badgeBg:'#222',    cardClass:'rarity-secret',    unreleased:false, startPrice:100000000},
 };
 // 과일 이름 → 등급 빠른 조회
 function getFruitRarity(fruitName) {
@@ -475,9 +573,9 @@ function buildCatalog() {
         // 황금: 드롭률 1/25, 가격 50배
         const g=GOLD+f.name;
         emoji[g]=f.emoji; prices[g]=f.price*50; rates[g]=f.rate/25; inv[g]=0;
-        // 다이아몬드: 드롭률 1/100, 가격 200배
+        // 다이아몬드: 드롭률 1/100, 가격 125배
         const d=DIA+f.name;
-        emoji[d]=f.emoji; prices[d]=f.price*200; rates[d]=f.rate/100; inv[d]=0;
+        emoji[d]=f.emoji; prices[d]=f.price*125; rates[d]=f.rate/100; inv[d]=0;
     }
     return {emoji,prices,rates,inv};
 }
@@ -492,6 +590,8 @@ const G = {
     lastDate:new Date().toDateString(),
     emoji:{...cat.emoji}, prices:{...cat.prices},
     rates:{...cat.rates}, inventory:{...cat.inv},
+    sellOrders:[], buyOrders:[], priceHistory:{},
+    friends:[], pendingRequests:[], tradeOffers:[],
 
     save() {
         localStorage.setItem('fruitFarm4', JSON.stringify({
@@ -502,14 +602,41 @@ const G = {
             ownedTitles:this.ownedTitles, equippedTitle:this.equippedTitle,
             lastDate:this.lastDate,
             prices:this.prices, inventory:this.inventory,
+            sellOrders:this.sellOrders, buyOrders:this.buyOrders,
+            priceHistory:this.priceHistory,
+            friends:this.friends, pendingRequests:this.pendingRequests, tradeOffers:this.tradeOffers,
         }));
     },
     load() {
         const d = JSON.parse(localStorage.getItem('fruitFarm4') || 'null');
         if (!d) return;
         Object.assign(this, d);
-        if (d.prices) Object.assign(this.prices, d.prices);
-        if (d.inventory) Object.assign(this.inventory, d.inventory);
+        // 카탈로그 기본값 → 저장값 순으로 병합해 신규 과일 누락 방지
+        this.prices    = Object.assign({...cat.prices},    d.prices    || {});
+        this.inventory = Object.assign({...cat.inv},       d.inventory || {});
+        if (d.sellOrders)   this.sellOrders   = d.sellOrders;
+        if (d.buyOrders)    this.buyOrders    = d.buyOrders;
+        if (d.priceHistory)    this.priceHistory    = d.priceHistory;
+        if (d.friends)         this.friends         = d.friends;
+        if (d.pendingRequests) this.pendingRequests = d.pendingRequests;
+        if (d.tradeOffers)     this.tradeOffers     = d.tradeOffers;
+    },
+    processPendingOrders() {
+        const now = Date.now();
+        const FILL_MS = 30000;
+        let changed = false;
+        for (const o of this.sellOrders) {
+            if (o.status==='pending' && now - o.registeredAt >= FILL_MS) {
+                o.status='completed'; this.gold += o.price * o.count; changed=true;
+            }
+        }
+        for (const o of this.buyOrders) {
+            if (o.status==='pending' && now - o.registeredAt >= FILL_MS) {
+                o.status='completed';
+                this.inventory[o.fruit]=(this.inventory[o.fruit]||0)+o.count; changed=true;
+            }
+        }
+        if (changed) { this.save(); refreshMain(); }
     },
     buyJuiceBg() {
         if (this.juicePurchased || this.gold < JUICE_PRICE) return false;
@@ -530,19 +657,32 @@ const G = {
     isMut(fruit)  { return this.isGold(fruit) || this.isDia(fruit); },
     get eqBase() { return this.base(this.equippedFruit); },
 
-    registerClick() { this.clickCount += this.eqBase==='딸기' ? 2 : 1; },
+    registerClick() { this.clickCount += this.eqBase==='할머니가 숨겨운 감' ? 2 : 1; },
 
     tryGetFruit() {
-        const boost = this.eqBase==='딸기'||this.eqBase==='포도';
-        const mult = boost ? 2 : 1;
+        const mult = this.eqBase==='딸기'           ? 1.1
+                   : this.eqBase==='할머니가 숨겨운 감' ? 2
+                   : this.eqBase==='별혼과'          ? 3 : 1;
         const roll = Math.random()*100;
         const sorted = Object.entries(this.rates).sort((a,b)=>a[1]-b[1]);
-        let cum=0;
+        let cum=0, got=null;
         for (const [name,rate] of sorted) {
-            cum += rate*mult;
-            if (roll < cum) return {fruit:name, count:this.eqBase==='포도'?2:1};
+            let r = rate * mult;
+            if (this.eqBase==='수박' && this.isDia(name)) r *= 1.5;
+            cum += r;
+            if (roll < cum) { got=name; break; }
         }
-        return {fruit:null, count:0};
+        // 포도 능력: 5% 확률로 상위 등급 과일
+        if (got && this.eqBase==='포도' && Math.random()<0.05) {
+            const up = upgradeRarity(got); if (up) got=up;
+        }
+        // 별혼과 능력: 15% 확률로 상위 등급 과일
+        if (got && this.eqBase==='별혼과' && Math.random()<0.15) {
+            const up = upgradeRarity(got); if (up) got=up;
+        }
+        // 레몬 능력: 50% 확률로 2배 지급
+        const count = (got && this.eqBase==='레몬' && Math.random()<0.5) ? 2 : 1;
+        return {fruit:got, count};
     },
 
     addFruit(fruit, count=1) { this.inventory[fruit]=(this.inventory[fruit]||0)+count; },
@@ -554,19 +694,291 @@ const G = {
         for (let i=0;i<days;i++) this.advanceDay();
         this.lastDate=today; return true;
     },
+    recordPrices() {
+        for (const f of BASE_FRUITS) {
+            for (const name of [f.name, GOLD+f.name, DIA+f.name]) {
+                if (!this.priceHistory[name]) this.priceHistory[name] = [];
+                this.priceHistory[name].push(this.prices[name]);
+                if (this.priceHistory[name].length > 7) this.priceHistory[name].shift();
+            }
+        }
+    },
     advanceDay() {
         this.day++;
         for (const f of BASE_FRUITS) {
-            const ch = Math.random()*.2-.1;
+            const sign = Math.random() < 0.5 ? 1 : -1;
+            const ch = sign * (0.01 + Math.random() * 0.04);
             this.prices[f.name] = Math.max(10, Math.round(this.prices[f.name]*(1+ch)));
             this.prices[GOLD+f.name] = this.prices[f.name]*50;
-            this.prices[DIA+f.name]  = this.prices[f.name]*200;
+            this.prices[DIA+f.name]  = this.prices[f.name]*125;
         }
+        this.recordPrices();
     },
     sellOne(f)  { if(this.inventory[f]>0){this.inventory[f]--;this.gold+=this.prices[f];} },
     sellAll(f)  { this.gold+=this.prices[f]*(this.inventory[f]||0); this.inventory[f]=0; },
     buyOne(f)   { if(this.gold<this.prices[f])return false; this.gold-=this.prices[f]; this.inventory[f]=(this.inventory[f]||0)+1; return true; },
 };
+
+// 포도 능력: 상위 등급 과일로 업그레이드
+function upgradeRarity(fruitName) {
+    const isGold = fruitName.startsWith(GOLD);
+    const isDia  = fruitName.startsWith(DIA);
+    const prefix = isGold ? GOLD : isDia ? DIA : '';
+    const base   = isGold ? fruitName.slice(GOLD.length) : isDia ? fruitName.slice(DIA.length) : fruitName;
+    const order  = ['희귀','영웅','전설','신화','불멸','비밀'];
+    const cur    = BASE_FRUITS.find(f=>f.name===base);
+    if (!cur) return null;
+    const idx = order.indexOf(cur.rarity);
+    if (idx===-1 || idx>=order.length-1) return null;
+    const next = BASE_FRUITS.find(f=>f.rarity===order[idx+1]);
+    return next ? prefix+next.name : null;
+}
+
+// ── Firebase REST ──────────────────────────────────────────────
+const FB = FIREBASE_URL ? {
+    async get(p)      { try{const r=await fetch(`${FIREBASE_URL}/ff/${p}.json`);return await r.json();}catch{return null;} },
+    async set(p,d)    { try{await fetch(`${FIREBASE_URL}/ff/${p}.json`,{method:'PUT',body:JSON.stringify(d)});}catch{} },
+    async push(p,d)   { try{await fetch(`${FIREBASE_URL}/ff/${p}.json`,{method:'POST',body:JSON.stringify(d)});}catch{} },
+    async del(p)      { try{await fetch(`${FIREBASE_URL}/ff/${p}.json`,{method:'DELETE'});}catch{} },
+} : null;
+function encN(s){ return s.replace(/[.#$[\]/]/g,'_'); }
+
+// ── 닉네임 레지스트리 ──────────────────────────────────────────
+function getNicknameRegistry() { return JSON.parse(localStorage.getItem('fruitFarm4_registry')||'{}'); }
+async function isNicknameTaken(nick) {
+    if (FB) { const v=await FB.get(`reg/${encN(nick)}`); return v!==null && v!==G.nickname; }
+    const r=getNicknameRegistry(); return nick in r && r[nick]!==G.nickname;
+}
+async function registerNickname(nick) {
+    if (FB) await FB.set(`reg/${encN(nick)}`, Date.now());
+    const r=getNicknameRegistry(); r[nick]=Date.now(); localStorage.setItem('fruitFarm4_registry',JSON.stringify(r));
+}
+
+// ── 우편함 ─────────────────────────────────────────────────────
+function getMailbox(nick)       { return JSON.parse(localStorage.getItem(`fruitFarm4_mb_${nick}`)||'[]'); }
+function setMailbox(nick,msgs)  { localStorage.setItem(`fruitFarm4_mb_${nick}`,JSON.stringify(msgs)); }
+function sendToMailbox(nick,msg){ const b=getMailbox(nick); b.push({...msg,ts:Date.now()}); setMailbox(nick,b); }
+
+async function pushMsg(nick, msg) {
+    if (FB) await FB.push(`mb/${encN(nick)}`, {...msg, ts:Date.now()});
+    else sendToMailbox(nick, msg);
+}
+async function processMailbox() {
+    if (!G.nickname) return;
+    let msgs=[];
+    if (FB) {
+        const data=await FB.get(`mb/${encN(G.nickname)}`);
+        if (data){ msgs=Object.values(data); await FB.del(`mb/${encN(G.nickname)}`); }
+    } else {
+        msgs=getMailbox(G.nickname); if(!msgs.length)return; setMailbox(G.nickname,[]);
+    }
+    let changed=false;
+    for(const m of msgs){
+        if(m.type==='friend_req')    {if(!G.pendingRequests.includes(m.from)){G.pendingRequests.push(m.from);changed=true;}}
+        else if(m.type==='friend_accept'){if(!G.friends.includes(m.from)){G.friends.push(m.from);changed=true;}}
+        else if(m.type==='trade')    {G.tradeOffers.push(m);changed=true;}
+        else if(m.type==='trade_return'){G.gold+=m.gold||0;for(const[f,c]of Object.entries(m.items||{}))G.addFruit(f,c);changed=true;}
+    }
+    if(changed){G.save();updateFriendBadge();refreshMain();}
+}
+
+// ── 친구 기능 ──────────────────────────────────────────────────
+async function sendFriendRequest(toNick) {
+    if(!toNick) return;
+    if(toNick===G.nickname)        return alert('자기 자신에게는 보낼 수 없습니다.');
+    if(G.friends.includes(toNick)) return alert('이미 친구입니다.');
+    if(FB){ const e=await FB.get(`reg/${encN(toNick)}`); if(!e)return alert(`'${toNick}' 닉네임이 존재하지 않습니다.`); }
+    else  { const r=getNicknameRegistry(); if(!(toNick in r))return alert(`'${toNick}' 닉네임이 존재하지 않습니다.\n(Firebase 미설정: 같은 기기만 검색됩니다)`); }
+    await pushMsg(toNick,{type:'friend_req',from:G.nickname});
+    alert(`'${toNick}'에게 친구요청을 보냈습니다!`);
+}
+async function acceptFriend(fromNick) {
+    if(!G.friends.includes(fromNick)) G.friends.push(fromNick);
+    G.pendingRequests=G.pendingRequests.filter(n=>n!==fromNick);
+    await pushMsg(fromNick,{type:'friend_accept',from:G.nickname});
+    G.save(); renderFriends(); updateFriendBadge();
+}
+function rejectFriend(fromNick) {
+    G.pendingRequests=G.pendingRequests.filter(n=>n!==fromNick);
+    G.save(); renderFriends(); updateFriendBadge();
+}
+function removeFriend(nick) { G.friends=G.friends.filter(n=>n!==nick); G.save(); renderFriends(); }
+function updateFriendBadge() {
+    const total = G.pendingRequests.length + G.tradeOffers.length;
+    const badge = $('friend-badge');
+    if (badge) { badge.style.display = total > 0 ? 'block' : 'none'; badge.textContent = total; }
+}
+
+// ── 선물 코드 (기기 간 거래) ────────────────────────────────────
+function generateGiftCode(items, gold) {
+    const data = { v:1, from:G.nickname, items, gold };
+    // Deduct immediately
+    G.gold -= gold;
+    for (const [f,c] of Object.entries(items)) G.inventory[f] = Math.max(0,(G.inventory[f]||0)-c);
+    G.save(); refreshMain();
+    return btoa(encodeURIComponent(JSON.stringify(data)));
+}
+function redeemGiftCode(code) {
+    try {
+        const data = JSON.parse(decodeURIComponent(atob(code.trim())));
+        let msg = `🎁 ${data.from || '?'}의 선물!\n`;
+        if (data.gold > 0) { G.gold += data.gold; msg += `💰 ${data.gold.toLocaleString()}G\n`; }
+        for (const [f,c] of Object.entries(data.items || {})) {
+            if (c > 0) { G.addFruit(f,c); msg += `${G.emoji[f]||f} ${f} ${c}개\n`; }
+        }
+        G.save(); refreshMain();
+        alert(msg + '\n✅ 수령 완료!');
+    } catch { alert('❌ 유효하지 않은 코드입니다.'); }
+}
+
+// ── 거래 ───────────────────────────────────────────────────────
+async function sendTrade(toNick, items, gold) {
+    if(FB){ const e=await FB.get(`reg/${encN(toNick)}`); if(!e)return alert('존재하지 않는 닉네임입니다.'); }
+    else  { const r=getNicknameRegistry(); if(!(toNick in r))return alert('존재하지 않는 닉네임입니다.'); }
+    G.gold-=gold;
+    for(const[f,c]of Object.entries(items)) G.inventory[f]=Math.max(0,(G.inventory[f]||0)-c);
+    await pushMsg(toNick,{type:'trade',from:G.nickname,items,gold});
+    G.save(); refreshMain();
+    alert(`'${toNick}'에게 거래 요청을 보냈습니다!`);
+}
+function acceptTrade(offer) {
+    G.gold+=offer.gold||0;
+    for(const[f,c]of Object.entries(offer.items||{}))G.addFruit(f,c);
+    G.tradeOffers=G.tradeOffers.filter(o=>o.ts!==offer.ts);
+    G.save(); refreshMain(); renderFriends(); updateFriendBadge();
+}
+async function rejectTrade(offer) {
+    await pushMsg(offer.from,{type:'trade_return',from:G.nickname,items:offer.items,gold:offer.gold});
+    G.tradeOffers=G.tradeOffers.filter(o=>o.ts!==offer.ts);
+    G.save(); renderFriends(); updateFriendBadge();
+}
+
+// ── 선물 코드 모달 렌더 ───────────────────────────────────────
+function renderFriends() {
+    const el = $('friends-content');
+    el.innerHTML = `
+        <div style="margin-bottom:14px">
+            <div style="color:#aaa;font-size:14px;margin-bottom:10px;line-height:1.6">
+                과일·골드를 코드로 변환해 친구에게 전달하세요.<br>
+                친구가 코드를 수령하면 즉시 지급됩니다.
+            </div>
+        </div>
+        <button class="btn" id="btn-make-code"
+            style="width:100%;background:#1a5c8a;color:#fff;font-size:16px;padding:14px;margin-bottom:12px">
+            🎁 선물 코드 생성
+        </button>
+        <div style="color:#aaa;font-size:14px;font-weight:bold;margin-bottom:8px">코드 수령</div>
+        <div style="display:flex;gap:8px">
+            <input id="inp-gift-code" type="text" placeholder="코드 붙여넣기"
+                style="flex:1;padding:12px;font-size:12px;background:#222;color:#fff;
+                       border:1px solid #444;border-radius:8px;font-family:monospace">
+            <button class="btn" id="btn-redeem-code"
+                style="background:#2a6a2a;color:#fff;font-size:15px;padding:12px 18px">수령</button>
+        </div>`;
+
+    $('btn-make-code').onclick = () => openGiftCodeModal();
+    $('btn-redeem-code').onclick = () => redeemGiftCode($('inp-gift-code').value);
+}
+
+// ── 거래 모달 ─────────────────────────────────────────────────
+function openTradeModal(toNick) {
+    const el = $('trade-content');
+    const state = { items:{}, gold:0 };
+    const render = () => {
+        const totalStr = Object.entries(state.items).filter(([,c])=>c>0).map(([f,c])=>`${G.emoji[f]||f}×${c}`).join(' ');
+        let html = `<div style="color:#aaa;font-size:12px;margin-bottom:10px"><strong style="color:#0f0">${toNick}</strong>에게 보낼 항목을 선택하세요</div>`;
+        // 골드
+        html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:#1a1a1a;border-radius:6px">
+            <span style="color:#ffd700;flex:1">💰 골드</span>
+            <input id="trade-gold" type="number" min="0" max="${G.gold}" value="${state.gold}"
+                style="width:100px;padding:4px;background:#222;color:#fff;border:1px solid #444;border-radius:4px;font-size:12px">
+            <span style="color:#aaa;font-size:11px">보유: ${G.gold.toLocaleString()}</span>
+        </div>`;
+        // 과일
+        for (const f of BASE_FRUITS) {
+            for (const name of [f.name, GOLD+f.name, DIA+f.name]) {
+                const inv = G.inventory[name]||0;
+                if (inv <= 0) continue;
+                const cur = state.items[name]||0;
+                html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:6px 10px;background:#1a1a1a;border-radius:6px">
+                    <span style="flex:1;color:#fff;font-size:13px">${emojiHtml(name)} ${name}</span>
+                    <button class="btn ti-m" data-n="${name}" style="background:#333;color:#fff;padding:2px 8px;font-size:14px">-</button>
+                    <span style="color:#0f0;min-width:20px;text-align:center;font-size:13px">${cur}</span>
+                    <button class="btn ti-p" data-n="${name}" style="background:#333;color:#fff;padding:2px 8px;font-size:14px">+</button>
+                    <span style="color:#555;font-size:11px">/${inv}</span>
+                </div>`;
+            }
+        }
+        html += `<div style="margin-top:10px;padding:10px;background:#111;border-radius:6px;font-size:12px;color:#aaa;min-height:32px">
+            선택: ${totalStr||'없음'} ${state.gold>0?`💰${state.gold.toLocaleString()}G`:''}
+        </div>
+        <button class="btn" id="btn-do-trade"
+            style="width:100%;background:#cc4400;color:#fff;font-size:14px;padding:10px;margin-top:8px">거래 요청 보내기</button>`;
+        el.innerHTML = html;
+        el.querySelectorAll('.ti-p').forEach(b=>b.onclick=()=>{
+            const n=b.dataset.n; state.items[n]=Math.min((state.items[n]||0)+1,(G.inventory[n]||0)); render();
+        });
+        el.querySelectorAll('.ti-m').forEach(b=>b.onclick=()=>{
+            const n=b.dataset.n; state.items[n]=Math.max((state.items[n]||0)-1,0); render();
+        });
+        $('btn-do-trade').onclick=async()=>{
+            state.gold=parseInt($('trade-gold').value)||0;
+            const items=Object.fromEntries(Object.entries(state.items).filter(([,c])=>c>0));
+            if (!Object.keys(items).length && state.gold<=0) return alert('보낼 항목을 선택하세요.');
+            if (state.gold > G.gold) return alert('골드가 부족합니다.');
+            await sendTrade(toNick, items, state.gold);
+            closeModal('modal-trade');
+        };
+    };
+    render();
+    closeModal('modal-friends');
+    openModal('modal-trade');
+}
+
+function openGiftCodeModal() {
+    const el = $('trade-content');
+    const state = { items:{}, gold:0 };
+    const render = () => {
+        let html = `<div style="color:#aaa;font-size:12px;margin-bottom:10px">다른 기기의 친구에게 보낼 항목을 선택하세요</div>`;
+        html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:#1a1a1a;border-radius:6px">
+            <span style="color:#ffd700;flex:1">💰 골드</span>
+            <input id="gift-gold" type="number" min="0" max="${G.gold}" value="${state.gold}"
+                style="width:100px;padding:4px;background:#222;color:#fff;border:1px solid #444;border-radius:4px;font-size:12px">
+        </div>`;
+        for (const f of BASE_FRUITS) {
+            for (const name of [f.name, GOLD+f.name, DIA+f.name]) {
+                const inv = G.inventory[name]||0; if (inv<=0) continue;
+                const cur = state.items[name]||0;
+                html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:6px 10px;background:#1a1a1a;border-radius:6px">
+                    <span style="flex:1;color:#fff;font-size:13px">${emojiHtml(name)} ${name}</span>
+                    <button class="btn gi-m" data-n="${name}" style="background:#333;color:#fff;padding:2px 8px;font-size:14px">-</button>
+                    <span style="color:#0f0;min-width:20px;text-align:center;font-size:13px">${cur}</span>
+                    <button class="btn gi-p" data-n="${name}" style="background:#333;color:#fff;padding:2px 8px;font-size:14px">+</button>
+                    <span style="color:#555;font-size:11px">/${inv}</span>
+                </div>`;
+            }
+        }
+        html += `<button class="btn" id="btn-gen-code" style="width:100%;background:#1a5c8a;color:#fff;font-size:14px;padding:10px;margin-top:8px">코드 생성</button>
+        <div id="gift-code-out" style="margin-top:8px"></div>`;
+        el.innerHTML = html;
+        el.querySelectorAll('.gi-p').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.items[n]=Math.min((state.items[n]||0)+1,(G.inventory[n]||0)); render(); });
+        el.querySelectorAll('.gi-m').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.items[n]=Math.max((state.items[n]||0)-1,0); render(); });
+        $('btn-gen-code').onclick=()=>{
+            state.gold=parseInt($('gift-gold').value)||0;
+            const items=Object.fromEntries(Object.entries(state.items).filter(([,c])=>c>0));
+            if (!Object.keys(items).length && state.gold<=0) return alert('보낼 항목을 선택하세요.');
+            if (state.gold > G.gold) return alert('골드가 부족합니다.');
+            const code = generateGiftCode(items, state.gold);
+            $('gift-code-out').innerHTML = `<textarea readonly onclick="this.select()"
+                style="width:100%;height:60px;background:#111;color:#0f0;border:1px solid #444;
+                       border-radius:6px;padding:8px;font-size:10px;font-family:monospace;resize:none">${code}</textarea>
+                <div style="color:#888;font-size:11px;text-align:center;margin-top:4px">코드를 복사해 친구에게 전달하세요</div>`;
+        };
+    };
+    render();
+    closeModal('modal-friends');
+    openModal('modal-trade');
+}
 
 // ── UI 유틸 ───────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -588,10 +1000,19 @@ function showDurian() {
 
     const el = $('durian-popup');
     el.innerHTML = `
-        <div class="durian-char">🦹</div>
+        <div class="durian-char">
+            <div style="color:#7cb342;font-size:19px;line-height:.72;letter-spacing:-5px">▲▲▲▲▲▲</div>
+            <div style="color:#9ccc65;font-size:14px;line-height:.72;letter-spacing:-4px">▲▲▲▲▲▲▲▲</div>
+            <div style="width:66px;height:52px;border-radius:50%;
+                        background:radial-gradient(ellipse,#fff9c4 8%,#f9a825 52%,#bf360c 100%);
+                        display:flex;align-items:center;justify-content:center;font-size:26px;
+                        box-shadow:inset 0 -6px 12px rgba(0,0,0,.3),0 3px 8px rgba(0,0,0,.4)">😤</div>
+            <div style="color:#558b2f;font-size:14px;line-height:.72;letter-spacing:-4px">▼▼▼▼▼▼▼▼</div>
+            <div style="color:#33691e;font-size:19px;line-height:.72;letter-spacing:-5px">▼▼▼▼▼▼</div>
+        </div>
         <div style="font-size:13px;color:#ff8888;font-weight:bold;letter-spacing:1px">두리안 도둑 등장!</div>
         <div class="durian-stolen">💰 −${stolen.toLocaleString()} G 도둑맞았다!</div>
-        <div style="font-size:22px;margin:4px 0">🌵💨</div>
+        <div style="font-size:18px;margin:4px 0">💨🤢💨</div>
         <div class="durian-escape">냄새만 남기고 줄행랑...</div>`;
 
     el.classList.remove('flee');
@@ -662,6 +1083,8 @@ function emojiHtml(fruit) {
     const e = G.emoji[fruit] || (typeof fruit === 'string' ? fruit : '');
     if (G.isDia(fruit))  return `<span class="diamond">${e}</span>`;
     if (G.isGold(fruit)) return `<span class="golden">${e}</span>`;
+    const bf = BASE_FRUITS.find(f => f.name === G.base(fruit));
+    if (bf && bf.rarity === '비밀') return `<span class="star-soul">${e}</span>`;
     return e;
 }
 
@@ -742,7 +1165,6 @@ const TITLES = {
 function refreshMain() {
     $('lbl-nick').textContent = `🌱 ${G.nickname}`;
     $('lbl-gold').textContent = `💰 골드: ${G.gold.toLocaleString()}`;
-    $('lbl-day').textContent  = `📅 ${G.day}일차`;
     $('lbl-clicks').textContent = `👆 클릭: ${G.clickCount.toLocaleString()}회`;
 
     // 칭호 표시
@@ -767,12 +1189,17 @@ const RARITY_APP_BG = {
     '전설':   { appBg:'linear-gradient(135deg,#2a1800,#120b00)', btnBg:'#2a1800', border:'#ffb300' },
     '신화':   { appBg:'linear-gradient(135deg,#2a0808,#120404)', btnBg:'#2a0808', border:'#ef5350' },
     '불멸':   { appBg:'linear-gradient(135deg,#050505,#000)',    btnBg:'#050505', border:'#888'    },
+    '비밀':   { appBg:'linear-gradient(135deg,#000a18,#000)',   btnBg:'#000a18', border:'#4af'    },
 };
 
 function updateEquip() {
     const f=G.equippedFruit, emoji=f?G.emoji[f]:'🧺', base=G.eqBase;
-    const effect = base==='딸기'?'효과: 드롭률 ×2 · 클릭수 ×2'
-                 : base==='포도'?'효과: 드롭률 ×2 · 보상 ×2':'효과: 없음';
+    const effect = base==='딸기'?'효과: 드롭 확률 ×1.1'
+                 : base==='수박'?'효과: 다이아 열매 확률 ×1.5'
+                 : base==='포도'?'효과: 5% 확률 상위 등급 등장'
+                 : base==='레몬'?'효과: 50% 확률 과일 2배 지급'
+                 : base==='할머니가 숨겨운 감'?'효과: 클릭수 ×2 · 드롭 확률 ×2'
+                 : base==='별혼과'?'효과: 드롭 확률 ×3 · 15% 상위 등급 등장':'효과: 없음';
 
     const btn=$('action-btn');
     btn.innerHTML = f ? emojiHtml(f) : emoji;
@@ -780,10 +1207,87 @@ function updateEquip() {
     // 버튼 색
     const baseF = f ? BASE_FRUITS.find(b => b.name === base) : null;
     const theme = baseF ? RARITY_APP_BG[baseF.rarity] : null;
-    btn.style.background  = theme ? theme.btnBg : '#1e1e1e';
-    btn.style.borderColor = theme ? theme.border : '#555';
+    btn.style.background = 'none';
+    btn.style.border = 'none';
 
     $('lbl-equipped').textContent=`장착 중: ${emoji} ${f||'없음'}  |  ${effect}`;
+}
+
+// ── 가격 꺾은선 그래프 ─────────────────────────────────────────
+function drawPriceChart(canvas, history, lineColor) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    if (!history || history.length < 2) {
+        ctx.fillStyle = '#555';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('데이터 수집 중...', W/2, H/2 + 4);
+        return;
+    }
+
+    const pad = {top:8, right:10, bottom:18, left:46};
+    const cW = W - pad.left - pad.right;
+    const cH = H - pad.top - pad.bottom;
+
+    const minV = Math.min(...history);
+    const maxV = Math.max(...history);
+    const range = maxV - minV || maxV * 0.1 || 1;
+
+    const px = i => pad.left + (i / (history.length - 1)) * cW;
+    const py = v => pad.top + cH - ((v - minV) / range) * cH;
+
+    // 격자
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth = 1;
+    [0, 0.5, 1].forEach(t => {
+        const yp = pad.top + cH * t;
+        ctx.beginPath(); ctx.moveTo(pad.left, yp); ctx.lineTo(pad.left + cW, yp); ctx.stroke();
+    });
+
+    // Y 레이블
+    const fmt = v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(1)+'K' : String(v);
+    ctx.fillStyle = '#666'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(fmt(maxV), pad.left - 3, pad.top + 4);
+    ctx.fillText(fmt(minV), pad.left - 3, pad.top + cH + 3);
+
+    // X 레이블
+    ctx.textAlign = 'center';
+    history.forEach((_, i) => {
+        const label = i === history.length - 1 ? '오늘' : `-${history.length - 1 - i}일`;
+        ctx.fillText(label, px(i), H - 2);
+    });
+
+    // 면적 채우기
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
+    grad.addColorStop(0, lineColor + '55');
+    grad.addColorStop(1, lineColor + '05');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    history.forEach((v, i) => i === 0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v)));
+    ctx.lineTo(px(history.length - 1), pad.top + cH);
+    ctx.lineTo(px(0), pad.top + cH);
+    ctx.closePath();
+    ctx.fill();
+
+    // 꺾은선
+    ctx.strokeStyle = lineColor; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    history.forEach((v, i) => i === 0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v)));
+    ctx.stroke();
+
+    // 점
+    history.forEach((v, i) => {
+        const isLast = i === history.length - 1;
+        ctx.beginPath();
+        ctx.arc(px(i), py(v), isLast ? 4 : 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = isLast ? '#fff' : lineColor;
+        ctx.fill();
+        if (isLast) {
+            ctx.strokeStyle = lineColor; ctx.lineWidth = 2; ctx.stroke();
+        }
+    });
 }
 
 // ── 자세히 보기 ───────────────────────────────────────────────
@@ -792,57 +1296,120 @@ function renderDetail(baseName) {
     if (!f) return;
     const r = RARITY[f.rarity];
 
-    // 모달 박스 배경을 등급 색으로 변경
     const box = document.querySelector('#modal-detail .modal-box');
-    box.className = 'modal-box ' + r.cardClass;
-    box.style.textAlign = 'center';
+    box.className = 'modal-box';
+    box.style.cssText = `text-align:center;border:2px solid ${r.color};box-shadow:0 0 18px ${r.color}55,0 0 50px ${r.color}18;`;
+
+    const mainDisplay = f.name === '별혼과' ? `
+        <div class="deity-wrap">
+            <div class="deity-glow"></div>
+            <div class="deity-star ds-a"><span>✦</span></div>
+            <div class="deity-star ds-b"><span>✦</span></div>
+            <div class="deity-star ds-c"><span>✦</span></div>
+            <div class="deity-star ds-d"><span>✷</span></div>
+            <div class="deity-star ds-e"><span>✷</span></div>
+            <div class="deity-star ds-f"><span>✷</span></div>
+            <div class="deity-star ds-g"><span>✶</span></div>
+            <div class="deity-star ds-h"><span>✶</span></div>
+            <div class="deity-star ds-i"><span>✶</span></div>
+            <div class="deity-main"><span class="star-soul">🌟</span></div>
+        </div>` :
+        `<div style="font-size:96px;line-height:1;margin-bottom:10px">${emojiHtml(f.name)}</div>`;
 
     $('detail-content').innerHTML = `
-        <div style="font-size:96px;line-height:1;margin-bottom:10px">${f.emoji}</div>
+        ${mainDisplay}
         <div style="font-size:26px;font-weight:bold;color:#fff;margin-bottom:10px">${f.name}</div>
         <div class="rarity-badge" style="background:${r.badgeBg};color:${r.color};
              border:2px solid ${r.color};box-shadow:0 0 12px ${r.color};
              font-size:15px;padding:5px 18px;margin-bottom:18px">
-            ✦ ${r.label}
+            ${r.label}
         </div>
-        <div style="background:rgba(0,0,0,.45);border-radius:10px;padding:14px 18px;font-size:15px;line-height:2">
+        <div style="background:rgba(0,0,0,.45);border-radius:10px;padding:14px 18px;font-size:15px;line-height:2;margin-bottom:12px">
             <div>기본 시세 &nbsp;<strong style="color:#ffd700">${G.prices[f.name].toLocaleString()} G</strong></div>
             <div><span class="golden" style="font-size:15px">${f.emoji}</span> 황금 &nbsp;<strong style="color:#ffd700">${G.prices[GOLD+f.name].toLocaleString()} G</strong></div>
             <div><span class="diamond" style="font-size:15px">${f.emoji}</span> 다이아 &nbsp;<strong style="color:#00cfff">${G.prices[DIA+f.name].toLocaleString()} G</strong></div>
+        </div>
+        <div style="background:rgba(0,0,0,.5);border-radius:10px;padding:12px;text-align:left">
+            <div style="color:#aaa;font-size:12px;margin-bottom:10px;text-align:center">📈 일주일 가격 변동</div>
+            <canvas id="chart-base" style="width:100%;display:block"></canvas>
         </div>`;
 
     openModal('modal-detail');
+
+    requestAnimationFrame(() => {
+        const cv = document.getElementById('chart-base');
+        if (!cv) return;
+        cv.width  = cv.offsetWidth || 280;
+        cv.height = 90;
+        cv.style.height = '90px';
+        drawPriceChart(cv, G.priceHistory[f.name] || [], r.color || '#ffd700');
+    });
 }
 
 // ── 확장 상태 ─────────────────────────────────────────────────
 const expanded = { inv:{}, mkt:{}, equip:{} };
 
 // ── 인벤토리 ─────────────────────────────────────────────────
+const RARITY_ORDER = ['희귀','영웅','전설','신화','불멸','비밀'];
+
 function renderInv() {
     const list=$('inv-list'); list.innerHTML='';
-    for (const f of BASE_FRUITS) {
-        const isOpen = expanded.inv[f.name];
-        // 기본 행
-        const row = document.createElement('div');
-        row.style.cssText='display:flex;align-items:center;gap:6px;padding:9px 10px;margin-bottom:4px;border-radius:6px;background:#1a1a1a';
-        const r = getFruitRarity(f.name);
-        row.innerHTML=`<span style="flex:1;color:#fff;display:flex;align-items:center">${rarityDot(f.name)}${f.emoji}  ${f.name}</span>
-                       <span style="color:#90ee90;font-weight:bold;margin-right:4px">${(G.inventory[f.name]||0).toLocaleString()}개</span>
-                       <button class="detail-btn" data-name="${f.name}">자세히</button>
-                       <button class="toggle-btn">${isOpen?'▲':'▼'}</button>`;
-        row.querySelector('.toggle-btn').onclick = () => { expanded.inv[f.name]=!isOpen; renderInv(); };
-        row.querySelector('.detail-btn').onclick = (e) => { e.stopPropagation(); renderDetail(f.name); };
-        list.appendChild(row);
+
+    for (const rarityKey of RARITY_ORDER) {
+        const r = RARITY[rarityKey];
+        const fruitsInRarity = BASE_FRUITS.filter(f=>f.rarity===rarityKey);
+        const isOpen = expanded.inv[rarityKey];
+
+        // 해당 등급 보유 총 개수
+        let total = 0;
+        for (const f of fruitsInRarity) {
+            total += (G.inventory[f.name]||0)+(G.inventory[GOLD+f.name]||0)+(G.inventory[DIA+f.name]||0);
+        }
+
+        // 등급 헤더
+        const header = document.createElement('div');
+        header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#1a1a1a;cursor:pointer;border-left:3px solid ${r.color}`;
+        header.innerHTML=`
+            <span class="rarity-badge" style="background:${r.badgeBg};color:${r.color};border:1px solid ${r.color};font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
+            <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 열매</span>
+            ${total>0?`<span style="color:#90ee90;font-size:12px">${total}개</span>`:''}
+            <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'더보기'}</button>`;
+        header.onclick = () => { expanded.inv[rarityKey]=!isOpen; renderInv(); };
+        list.appendChild(header);
+
         if (!isOpen) continue;
-        // 황금 / 다이아 서브 행
-        for (const [prefix, cls, color] of [[GOLD,'golden','#ffd700'],[DIA,'diamond','#00cfff']]) {
-            const name = prefix+f.name;
-            const sub = document.createElement('div');
-            sub.className='sub-row';
-            sub.style.cssText=`sub-row;display:flex;align-items:center;gap:6px;margin-left:14px;margin-bottom:4px;border-radius:6px;padding:7px 10px;background:#1a1a1a;border-left:3px solid ${color}`;
-            sub.innerHTML=`<span style="flex:1;color:#fff"><span class="${cls}">${f.emoji}</span>  ${name}</span>
-                           <span style="color:#90ee90;font-weight:bold">${(G.inventory[name]||0).toLocaleString()}개</span>`;
-            list.appendChild(sub);
+
+        if (r.unreleased || fruitsInRarity.length===0) {
+            const msg = document.createElement('div');
+            msg.style.cssText='margin-left:12px;margin-bottom:8px;padding:14px;border-radius:6px;background:#111;color:#555;text-align:center;font-size:13px';
+            msg.textContent='🔒 미출시';
+            list.appendChild(msg);
+            continue;
+        }
+
+        for (const f of fruitsInRarity) {
+            const isSubOpen = expanded.inv[f.name];
+            const row = document.createElement('div');
+            row.style.cssText='display:flex;align-items:center;gap:6px;padding:9px 10px;margin-left:12px;margin-bottom:4px;border-radius:6px;background:#1a1a1a';
+            row.innerHTML=`
+                <span style="flex:1;color:#fff;display:flex;align-items:center">${rarityDot(f.name)}${f.emoji}  ${f.name}</span>
+                <span style="color:#90ee90;font-weight:bold;margin-right:4px">${(G.inventory[f.name]||0).toLocaleString()}개</span>
+                <button class="detail-btn" data-name="${f.name}">자세히</button>
+                <button class="toggle-btn">${isSubOpen?'▲':'▼'}</button>`;
+            row.querySelector('.toggle-btn').onclick = (e)=>{ e.stopPropagation(); expanded.inv[f.name]=!isSubOpen; renderInv(); };
+            row.querySelector('.detail-btn').onclick = (e)=>{ e.stopPropagation(); renderDetail(f.name); };
+            list.appendChild(row);
+
+            if (isSubOpen) {
+                for (const [prefix,cls,color] of [[GOLD,'golden','#ffd700'],[DIA,'diamond','#00cfff']]) {
+                    const name=prefix+f.name;
+                    const sub=document.createElement('div');
+                    sub.style.cssText=`display:flex;align-items:center;gap:6px;margin-left:26px;margin-bottom:4px;border-radius:6px;padding:7px 10px;background:#1a1a1a;border-left:3px solid ${color}`;
+                    sub.innerHTML=`<span style="flex:1;color:#fff"><span class="${cls}">${f.emoji}</span>  ${name}</span>
+                                   <span style="color:#90ee90;font-weight:bold">${(G.inventory[name]||0).toLocaleString()}개</span>`;
+                    list.appendChild(sub);
+                }
+            }
         }
     }
 }
@@ -866,44 +1433,65 @@ function mktRow(name, color) {
 }
 
 function renderMkt() {
-    $('mkt-day').textContent  = `📅 ${G.day}일차`;
     $('mkt-gold').textContent = `💰 골드: ${G.gold.toLocaleString()}`;
-    const list=$('mkt-list'); list.innerHTML='';
+    const content = $('mkt-content');
+    content.innerHTML = '';
 
-    for (const f of BASE_FRUITS) {
-        const isOpen = expanded.mkt[f.name];
-        // 기본 행
-        const row = document.createElement('div');
-        row.style.cssText='padding:9px 10px;margin-bottom:4px;border-radius:7px;background:#222';
-        row.innerHTML=`
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
-                <span style="flex:1;color:#fff;font-size:13px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
-                    ${rarityDot(f.name)}${f.emoji}  ${f.name} &nbsp;
-                    시세: <span style="color:#ffd700">${G.prices[f.name].toLocaleString()}G</span> &nbsp;
-                    보유: <span style="color:#90ee90">${G.inventory[f.name]||0}개</span>
-                </span>
-                <button class="toggle-btn">${isOpen?'▲':'▼'}</button>
-            </div>
-            <div style="display:flex;gap:4px">
-                <button class="btn ms1" data-f="${f.name}" style="flex:1;background:#cc4400;color:#fff;font-size:11px;padding:6px 0">1개 팔기</button>
-                <button class="btn msa" data-f="${f.name}" style="flex:1;background:#8b0000;color:#fff;font-size:11px;padding:6px 0">전부 팔기</button>
-                <button class="btn mb1" data-f="${f.name}" style="flex:1;background:#006b6b;color:#fff;font-size:11px;padding:6px 0">1개 구매</button>
-            </div>`;
-        row.querySelector('.toggle-btn').onclick = () => { expanded.mkt[f.name]=!isOpen; renderMkt(); };
-        list.appendChild(row);
+    for (const rarityKey of RARITY_ORDER) {
+        const r = RARITY[rarityKey];
+        const fruitsInRarity = BASE_FRUITS.filter(f=>f.rarity===rarityKey);
+        const isOpen = expanded.mkt[rarityKey];
 
-        if (isOpen) {
-            const gRow = mktRow(GOLD+f.name, '#ffd700');
-            gRow.style.marginLeft='12px';
-            list.appendChild(gRow);
-            const dRow = mktRow(DIA+f.name, '#00cfff');
-            dRow.style.marginLeft='12px';
-            list.appendChild(dRow);
+        const header = document.createElement('div');
+        header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#222;cursor:pointer;border-left:3px solid ${r.color}`;
+        header.innerHTML=`
+            <span class="rarity-badge" style="background:${r.badgeBg};color:${r.color};border:1px solid ${r.color};font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
+            <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 열매</span>
+            <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'펼치기'}</button>`;
+        header.onclick = () => { expanded.mkt[rarityKey]=!isOpen; renderMkt(); };
+        content.appendChild(header);
+
+        if (!isOpen) continue;
+
+        if (r.unreleased || fruitsInRarity.length===0) {
+            const msg = document.createElement('div');
+            msg.style.cssText='margin-left:12px;margin-bottom:8px;padding:14px;border-radius:6px;background:#1a1a1a;color:#555;text-align:center;font-size:13px';
+            msg.textContent='🔒 미출시';
+            content.appendChild(msg);
+            continue;
+        }
+
+        for (const f of fruitsInRarity) {
+            const isSubOpen = expanded.mkt[f.name];
+            const row = document.createElement('div');
+            row.style.cssText='padding:9px 10px;margin-left:12px;margin-bottom:4px;border-radius:7px;background:#1a1a1a';
+            row.innerHTML=`
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+                    <span style="flex:1;color:#fff;font-size:13px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+                        ${rarityDot(f.name)}${f.emoji}  ${f.name} &nbsp;
+                        시세: <span style="color:#ffd700">${G.prices[f.name].toLocaleString()}G</span> &nbsp;
+                        보유: <span style="color:#90ee90">${G.inventory[f.name]||0}개</span>
+                    </span>
+                    <button class="toggle-btn">${isSubOpen?'▲':'▼'}</button>
+                </div>
+                <div style="display:flex;gap:4px">
+                    <button class="btn ms1" data-f="${f.name}" style="flex:1;background:#cc4400;color:#fff;font-size:11px;padding:6px 0">1개 팔기</button>
+                    <button class="btn msa" data-f="${f.name}" style="flex:1;background:#8b0000;color:#fff;font-size:11px;padding:6px 0">전부 팔기</button>
+                    <button class="btn mb1" data-f="${f.name}" style="flex:1;background:#006b6b;color:#fff;font-size:11px;padding:6px 0">1개 구매</button>
+                </div>`;
+            row.querySelector('.toggle-btn').onclick=(e)=>{ e.stopPropagation(); expanded.mkt[f.name]=!isSubOpen; renderMkt(); };
+            content.appendChild(row);
+
+            if (isSubOpen) {
+                const gRow = mktRow(GOLD+f.name,'#ffd700'); gRow.style.marginLeft='24px'; content.appendChild(gRow);
+                const dRow = mktRow(DIA+f.name, '#00cfff'); dRow.style.marginLeft='24px'; content.appendChild(dRow);
+            }
         }
     }
-    list.querySelectorAll('.ms1').forEach(b=>b.onclick=()=>{G.sellOne(b.dataset.f);G.save();renderMkt();});
-    list.querySelectorAll('.msa').forEach(b=>b.onclick=()=>{G.sellAll(b.dataset.f);G.save();renderMkt();});
-    list.querySelectorAll('.mb1').forEach(b=>b.onclick=()=>{G.buyOne(b.dataset.f);G.save();renderMkt();});
+
+    content.querySelectorAll('.ms1').forEach(b=>b.onclick=()=>{G.sellOne(b.dataset.f);G.save();renderMkt();refreshMain();});
+    content.querySelectorAll('.msa').forEach(b=>b.onclick=()=>{G.sellAll(b.dataset.f);G.save();renderMkt();refreshMain();});
+    content.querySelectorAll('.mb1').forEach(b=>b.onclick=()=>{G.buyOne(b.dataset.f);G.save();renderMkt();refreshMain();});
 }
 
 // ── 장착 ─────────────────────────────────────────────────────
@@ -913,8 +1501,12 @@ function equipOpt(fruit, borderColor='transparent', indent=false) {
     const eq  = G.equippedFruit===f;
     const base = f ? G.base(f) : '';
     const tag  = G.isDia(f)?'(다이아)':G.isGold(f)?'(황금)':'';
-    const fx = base==='딸기'?`드롭률 ×2 · 클릭수 ×2 ${tag}`
-             : base==='포도'?`드롭률 ×2 · 보상 ×2 ${tag}`
+    const fx = base==='딸기'?`드롭 확률 ×1.1 ${tag}`
+             : base==='수박'?`다이아 열매 확률 ×1.5 ${tag}`
+             : base==='포도'?`5% 확률 상위 등급 등장 ${tag}`
+             : base==='레몬'?`50% 확률 과일 2배 지급 ${tag}`
+             : base==='할머니가 숨겨운 감'?`클릭수 ×2 · 드롭 확률 ×2 ${tag}`
+             : base==='별혼과'?`드롭 확률 ×3 · 15% 상위 등급 등장 ${tag}`
              : `효과 없음 ${tag}`;
     const d=document.createElement('div');
     d.style.cssText=`padding:9px 12px;margin-bottom:4px;border-radius:8px;
@@ -935,24 +1527,48 @@ function renderEquip() {
     const list=$('equip-list'); list.innerHTML='';
     list.appendChild(equipOpt(null));
 
-    for (const f of BASE_FRUITS) {
-        const isOpen = expanded.equip[f.name];
-        // 기본 과일 행 + 토글 버튼
-        const wrap = document.createElement('div');
-        wrap.style.cssText='display:flex;gap:6px;align-items:flex-start;margin-bottom:4px';
-        const opt = equipOpt(f.name);
-        opt.style.flex='1'; opt.style.marginBottom='0';
-        const tog = document.createElement('button');
-        tog.className='toggle-btn';
-        tog.style.marginTop='9px';
-        tog.textContent = isOpen?'▲':'▼';
-        tog.onclick=()=>{ expanded.equip[f.name]=!isOpen; renderEquip(); };
-        wrap.appendChild(opt); wrap.appendChild(tog);
-        list.appendChild(wrap);
+    for (const rarityKey of RARITY_ORDER) {
+        const r = RARITY[rarityKey];
+        const fruitsInRarity = BASE_FRUITS.filter(f=>f.rarity===rarityKey);
+        const isOpen = expanded.equip[rarityKey];
 
-        if (isOpen) {
-            list.appendChild(equipOpt(GOLD+f.name, '#ffd700', true));
-            list.appendChild(equipOpt(DIA+f.name,  '#00cfff', true));
+        const header = document.createElement('div');
+        header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#1a1a1a;cursor:pointer;border-left:3px solid ${r.color}`;
+        header.innerHTML=`
+            <span class="rarity-badge" style="background:${r.badgeBg};color:${r.color};border:1px solid ${r.color};font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
+            <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 열매</span>
+            <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'펼치기'}</button>`;
+        header.onclick = ()=>{ expanded.equip[rarityKey]=!isOpen; renderEquip(); };
+        list.appendChild(header);
+
+        if (!isOpen) continue;
+
+        if (r.unreleased || fruitsInRarity.length===0) {
+            const msg = document.createElement('div');
+            msg.style.cssText='margin-left:12px;margin-bottom:8px;padding:12px;border-radius:6px;background:#111;color:#555;text-align:center;font-size:13px';
+            msg.textContent='🔒 미출시';
+            list.appendChild(msg);
+            continue;
+        }
+
+        for (const f of fruitsInRarity) {
+            const isSubOpen = expanded.equip[f.name];
+            const wrap = document.createElement('div');
+            wrap.style.cssText='display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;margin-left:12px';
+            const opt = equipOpt(f.name);
+            opt.style.flex='1'; opt.style.marginBottom='0';
+            const tog = document.createElement('button');
+            tog.className='toggle-btn';
+            tog.style.marginTop='9px';
+            tog.textContent = isSubOpen?'▲':'▼';
+            tog.onclick=()=>{ expanded.equip[f.name]=!isSubOpen; renderEquip(); };
+            wrap.appendChild(opt); wrap.appendChild(tog);
+            list.appendChild(wrap);
+
+            if (isSubOpen) {
+                list.appendChild(equipOpt(GOLD+f.name,'#ffd700',true));
+                list.appendChild(equipOpt(DIA+f.name, '#00cfff',true));
+            }
         }
     }
 }
@@ -1050,9 +1666,11 @@ function renderShop() {
 // ── 이벤트 ───────────────────────────────────────────────────
 $('btn-start').onclick = () => G.nickname ? (show('scr-main'),refreshMain()) : show('scr-nick');
 
-$('btn-nick-ok').onclick = () => {
+$('btn-nick-ok').onclick = async () => {
     const nick=$('inp-nick').value.trim();
     if(!nick){alert('닉네임을 입력해주세요.');return;}
+    if(await isNicknameTaken(nick)){alert(`❌ '${nick}'은(는) 이미 사용 중인 닉네임입니다.\n다른 닉네임을 선택해주세요.`);return;}
+    await registerNickname(nick);
     G.nickname=nick; G.save(); show('scr-main'); refreshMain();
 };
 $('inp-nick').addEventListener('keydown',e=>{ if(e.key==='Enter')$('btn-nick-ok').click(); });
@@ -1070,15 +1688,18 @@ $('action-btn').onclick = () => {
 };
 
 // 프로필 버튼 비활성화
-$('btn-profile-close').onclick= ()=>{ closeModal('modal-profile'); refreshMain(); };
+$('btn-profile-close').onclick = ()=>{ closeModal('modal-profile'); refreshMain(); };
+$('btn-friends').onclick      = ()=>{ renderFriends(); openModal('modal-friends'); };
+$('btn-friends-close').onclick= ()=>{ closeModal('modal-friends'); };
+$('btn-trade-close').onclick  = ()=>{ closeModal('modal-trade'); };
 
-$('btn-inv-open').onclick  = ()=>{ renderInv();   openModal('modal-inv'); };
+$('btn-inv-open').onclick  = ()=>{ expanded.inv={}; renderInv(); openModal('modal-inv'); };
 $('btn-inv-close').onclick = ()=>   closeModal('modal-inv');
 
-$('btn-mkt-open').onclick  = ()=>{ renderMkt();   openModal('modal-mkt'); };
+$('btn-mkt-open').onclick  = ()=>{ expanded.mkt={}; renderMkt(); openModal('modal-mkt'); };
 $('btn-mkt-close').onclick = ()=>{ closeModal('modal-mkt'); refreshMain(); };
 
-$('btn-equip-open').onclick  = ()=>{ renderEquip();  openModal('modal-equip'); };
+$('btn-equip-open').onclick  = ()=>{ expanded.equip={}; renderEquip(); openModal('modal-equip'); };
 $('btn-equip-close').onclick  = ()=> closeModal('modal-equip');
 $('btn-detail-close').onclick = ()=> closeModal('modal-detail');
 $('btn-shop-open').onclick    = ()=>{ renderShop(); openModal('modal-shop'); };
@@ -1092,9 +1713,17 @@ document.querySelectorAll('.modal').forEach(m=>{
 // ── 초기화 ────────────────────────────────────────────────────
 G.load();
 G.checkDay();
+if (!Object.keys(G.priceHistory).length) G.recordPrices();
 applyBg();
-G.nickname ? (show('scr-main'),refreshMain()) : show('scr-start');
+if (G.nickname) {
+    registerNickname(G.nickname); // async, fire-and-forget
+    processMailbox();
+    show('scr-main'); refreshMain(); updateFriendBadge();
+} else {
+    show('scr-start');
+}
 setInterval(()=>{ if(G.checkDay()){G.save();refreshMain();} }, 30000);
+setInterval(()=>{ processMailbox(); updateFriendBadge(); }, 5000);
 </script>
 </body>
 </html>
