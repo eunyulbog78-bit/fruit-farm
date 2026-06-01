@@ -815,12 +815,12 @@ const BASE_FRUITS = [
     { name:'딸기', emoji:'🍓', price:400, rate:1.0, rarity:'영웅' },
     { name:'수박', emoji:'🍉', price:500, rate:0.7, rarity:'영웅' },
     { name:'키위', emoji:'🥝', price:450, rate:0.8, rarity:'영웅' },
-    { name:'포도', emoji:'🍇', price:1000,      rate:0.5,      rarity:'전설' },
-    { name:'귤', emoji:'🍊', price:900,       rate:0.6,      rarity:'전설' },
+    { name:'포도', emoji:'🍇', price:5000,      rate:0.5,      rarity:'전설' },
+    { name:'귤', emoji:'🍊', price:4500,       rate:0.6,      rarity:'전설' },
     { name:'코코넛', emoji:'🥥', price:200000,    rate:0.001,    rarity:'신화' },
     { name:'레몬', emoji:'🍋', price:200000,    rate:0.001,    rarity:'신화' },
-    { name:'할머니가 숨겨둔 감', emoji:'🍅', price:1000000,  rate:0.00005,  rarity:'불멸' },
-    { name:'별혼과', emoji:'🌟', price:100000000, rate:0.000001, rarity:'비밀' },
+    { name:'할머니가 숨겨둔 감', emoji:'🍅', price:10000000,  rate:0.00005,  rarity:'불멸' },
+    { name:'별혼과', emoji:'🌟', price:1000000000, rate:0.000001, rarity:'비밀' },
 ];
 const GOLD = '황금 ';
 const DIA  = '다이아몬드 ';
@@ -835,20 +835,20 @@ const BLUE_POTION_MS    = 10 * 60 * 1000;
 const RARITY = {
     '희귀': { label:'희귀', en:'RARE',      color:'#00c853', badgeBg:'#004d1a', cardClass:'rarity-rare',      unreleased:false, startPrice:100      },
     '영웅': { label:'영웅', en:'HERO',      color:'#ce93d8', badgeBg:'#4a0072', cardClass:'rarity-hero',      unreleased:false, startPrice:400      },
-    '전설': { label:'전설', en:'LEGEND',    color:'#ffb300', badgeBg:'#5a3000', cardClass:'rarity-legend',    unreleased:false, startPrice:1000     },
+    '전설': { label:'전설', en:'LEGEND',    color:'#ffb300', badgeBg:'#5a3000', cardClass:'rarity-legend',    unreleased:false, startPrice:5000     },
     '신화': { label:'신화', en:'MYTHIC',    color:'#ef5350', badgeBg:'#5a0000', cardClass:'rarity-myth',      unreleased:false, startPrice:200000   },
-    '불멸': { label:'불멸', en:'IMMORTAL',  color:'#7a0000', badgeBg:'#220000', cardClass:'rarity-immortal',  unreleased:false, startPrice:1000000  },
-    '비밀': { label:'비밀', en:'SECRET',    color:'#fff',    badgeBg:'#222',    cardClass:'rarity-secret',    unreleased:false, startPrice:100000000},
+    '불멸': { label:'불멸', en:'IMMORTAL',  color:'#7a0000', badgeBg:'#220000', cardClass:'rarity-immortal',  unreleased:false, startPrice:10000000  },
+    '비밀': { label:'비밀', en:'SECRET',    color:'#fff',    badgeBg:'#222',    cardClass:'rarity-secret',    unreleased:false, startPrice:1000000000},
     '신성': { label:'신성', en:'DIVINE',    color:'#ff88ff', badgeBg:'#220022', cardClass:'rarity-divine',    unreleased:true,  startPrice:2500000000},
 };
 // 등급별 드롭 확률 (이 확률로 등급 결정 → 그 등급 내에서 랜덤 과일 선택)
 const RARITY_RATES = { // 신성은 미출시 — 드롭 확률 0
-    '희귀': 2.0,
-    '영웅': 1.0,
-    '전설': 0.4,
-    '신화': 0.001,
-    '불멸': 0.0001,
-    '비밀': 0.00001,
+    '희귀': 1.5,
+    '영웅': 0.75,
+    '전설': 0.06,
+    '신화': 0.001875,
+    '불멸': 0.0000075,
+    '비밀': 0.00000075,
 };
 
 // 과일 이름 → 등급 빠른 조회
@@ -866,12 +866,12 @@ function buildCatalog() {
     for (const f of BASE_FRUITS) {
         // 기본
         emoji[f.name]=f.emoji; prices[f.name]=f.price; rates[f.name]=f.rate; inv[f.name]=0;
-        // 황금: 드롭률 1/25, 가격 50배
+        // 황금: 드롭률 1/10, 가격 10배
         const g=GOLD+f.name;
-        emoji[g]=f.emoji; prices[g]=f.price*50; rates[g]=f.rate/25; inv[g]=0;
-        // 다이아몬드: 드롭률 1/100, 가격 150배
+        emoji[g]=f.emoji; prices[g]=f.price*10; rates[g]=f.rate/10; inv[g]=0;
+        // 다이아몬드: 드롭률 1/25, 가격 25배
         const d=DIA+f.name;
-        emoji[d]=f.emoji; prices[d]=f.price*150; rates[d]=f.rate/100; inv[d]=0;
+        emoji[d]=f.emoji; prices[d]=f.price*25; rates[d]=f.rate/25; inv[d]=0;
     }
     return {emoji,prices,rates,inv};
 }
@@ -1020,8 +1020,8 @@ const G = {
         // 3. 랜덤 과일 선택
         let got = candidates[Math.floor(Math.random() * candidates.length)];
         // 4. 황금/다이아 변이 적용 (기본 과일 -> 변이 과일)
-        const diaChance = (1 / 100) * (this.eqBase === '수박' ? 1.5 : 1);
-        const goldChance = 1 / 25;
+        const diaChance = (1 / 25) * (this.eqBase === '수박' ? 1.5 : 1);
+        const goldChance = 1 / 10;
         if (Math.random() < diaChance) {
             got = DIA + got;
         } else if (Math.random() < goldChance) {
