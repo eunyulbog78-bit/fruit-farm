@@ -805,6 +805,7 @@ body { background:#000 !important; }
 // 2. Realtime Database → 데이터베이스 만들기 → 테스트 모드
 // 3. 데이터베이스 URL 복사 후 아래에 붙여넣기
 const FIREBASE_URL = 'https://fruit-farm-f24fe-default-rtdb.firebaseio.com';
+const SAVE_VERSION = 2; // 가격/확률 변경 시 이 숫자를 올리면 기존 유저 가격 자동 초기화
 // ══════════════════════════════════════════════════════════════
 
 // ── 과일 정의 (새 과일은 여기에만 추가) ──────────────────────
@@ -905,15 +906,21 @@ const G = {
             sellOrders:this.sellOrders, buyOrders:this.buyOrders,
             priceHistory:this.priceHistory,
             friends:this.friends, pendingRequests:this.pendingRequests, tradeOffers:this.tradeOffers,
+            saveVersion: SAVE_VERSION,
         }));
     },
     load() {
         const d = JSON.parse(localStorage.getItem('fruitFarm4') || 'null');
         if (!d) return;
         Object.assign(this, d);
-        // 카탈로그 기본값 → 저장값 순으로 병합해 신규 과일 누락 방지
-        this.prices    = Object.assign({...cat.prices},    d.prices    || {});
-        this.inventory = Object.assign({...cat.inv},       d.inventory || {});
+        // 버전이 다르면 가격 초기화 (업데이트 적용)
+        if (!d.saveVersion || d.saveVersion < SAVE_VERSION) {
+            this.prices = {...cat.prices};
+            this.priceHistory = {};
+        } else {
+            this.prices = Object.assign({...cat.prices}, d.prices || {});
+        }
+        this.inventory = Object.assign({...cat.inv}, d.inventory || {});
         if (d.sellOrders)   this.sellOrders   = d.sellOrders;
         if (d.buyOrders)    this.buyOrders    = d.buyOrders;
         if (d.priceHistory)    this.priceHistory    = d.priceHistory;
