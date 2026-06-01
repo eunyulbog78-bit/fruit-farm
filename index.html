@@ -1048,10 +1048,10 @@ const G = {
             this.redPotionPending--;
         }
 
-        // 키위 능력: 10% 확률로 2배 지급, 레몬 능력: 50% 확률로 2배 지급, 감 능력: 0.3% 확률로 2배 지급
+        // 키위 능력: 10% 확률로 2배 지급, 레몬 능력: 50% 확률로 2배 지급, 감 능력: 30% 확률로 2배 지급
         const count = (got && this.eqBase==='키위' && Math.random()<0.1) ? 2
             : (got && this.eqBase==='레몬' && Math.random()<0.5) ? 2
-                : (got && this.eqBase==='할머니가 숨겨둔 감' && Math.random()<0.003) ? 2 : 1;
+                : (got && this.eqBase==='할머니가 숨겨둔 감' && Math.random()<0.3) ? 2 : 1;
         return { fruit: got, count };
     },
 
@@ -1729,7 +1729,7 @@ function updateEquip() {
                  : base==='귤'?'효과: 두리안 도둑 미등장'
                  : base==='코코넛'?'효과: 클릭수 ×2 · 드롭 확률 ×2'
                  : base==='레몬'?'효과: 50% 확률 과일 2배 지급'
-                 : base==='할머니가 숨겨둔 감'?'효과: 0.3% 확률 과일 2배 지급 · 드롭 확률 ×2.5'
+                 : base==='할머니가 숨겨둔 감'?'효과: 30% 확률 과일 2배 지급 · 드롭 확률 ×2.5'
                  : base==='별혼과'?'효과: 드롭 확률 ×3 · 15% 상위 등급 등장':'효과: 없음';
 
     const btn=$('action-btn');
@@ -1839,7 +1839,7 @@ function renderDetail(baseName) {
                  : baseName==='귤' ? '두리안 도둑 미등장'
                  : baseName==='코코넛' ? '클릭수 x2 · 드롭 확률 x2'
                  : baseName==='레몬' ? '50% 확률 과일 2배 지급'
-                 : baseName==='할머니가 숨겨둔 감' ? '0.3% 확률 과일 2배 지급 · 드롭 확률 x2.5'
+                 : baseName==='할머니가 숨겨둔 감' ? '30% 확률 과일 2배 지급 · 드롭 확률 x2.5'
                  : baseName==='별혼과' ? '드롭 확률 x3 · 15% 상위 등급 등장'
                  : '효과 없음';
 
@@ -2056,7 +2056,7 @@ function equipOpt(fruit, borderColor='transparent', indent=false) {
              : base==='귤'?`두리안 도둑 미등장 ${tag}`
              : base==='코코넛'?`클릭수 ×2 · 드롭 확률 ×2 ${tag}`
              : base==='레몬'?`50% 확률 과일 2배 지급 ${tag}`
-             : base==='할머니가 숨겨둔 감'?`0.3% 확률 과일 2배 지급 · 드롭 확률 ×2.5 ${tag}`
+             : base==='할머니가 숨겨둔 감'?`30% 확률 과일 2배 지급 · 드롭 확률 ×2.5 ${tag}`
              : base==='별혼과'?`드롭 확률 ×3 · 15% 상위 등급 등장 ${tag}`
              : `효과 없음 ${tag}`;
     const d=document.createElement('div');
