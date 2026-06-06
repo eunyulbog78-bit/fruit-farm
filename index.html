@@ -833,7 +833,42 @@ const BASE_FRUITS = [
     { name:'레몬', emoji:'🍋', price:200000,    rate:0.001,    rarity:'신화' },
     { name:'할머니가 숨겨둔 감', emoji:'🍅', price:10000000,  rate:0.00005,  rarity:'불멸' },
     { name:'별혼과', emoji:'🌟', price:1000000000, rate:0.000001, rarity:'비밀' },
+    { name:'개척자의 열매', emoji:'🌱🏆', price:0, rate:0, rarity:'비밀' },
 ];
+const NO_SELL_FRUITS = ['개척자의 열매']; // 판매 불가 (거래만 가능)
+const PIONEER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 115" style="width:1em;height:1.15em;vertical-align:-0.1em;display:inline-block">
+  <path d="M31,28 Q10,35 12,54 Q14,67 31,62" fill="none" stroke="#8B6010" stroke-width="9" stroke-linecap="round"/>
+  <path d="M31,28 Q10,35 12,54 Q14,67 31,62" fill="none" stroke="#FFD700" stroke-width="6" stroke-linecap="round"/>
+  <path d="M69,28 Q90,35 88,54 Q86,67 69,62" fill="none" stroke="#8B6010" stroke-width="9" stroke-linecap="round"/>
+  <path d="M69,28 Q90,35 88,54 Q86,67 69,62" fill="none" stroke="#FFD700" stroke-width="6" stroke-linecap="round"/>
+  <path d="M30,13 L70,13 L63,61 Q60,76 50,79 Q40,76 37,61 Z" fill="#9A6B00"/>
+  <path d="M28,11 L72,11 L65,59 Q62,74 50,77 Q38,74 35,59 Z" fill="#FFD700"/>
+  <path d="M33,14 L56,14 L52,37 Q43,19 33,21 Z" fill="#FFFDE7" opacity="0.5"/>
+  <rect x="44" y="77" width="12" height="12" fill="#9A6B00" rx="1"/>
+  <rect x="42" y="75" width="16" height="12" fill="#FFD700" rx="1"/>
+  <rect x="30" y="87" width="40" height="13" rx="5" fill="#7A5000"/>
+  <rect x="28" y="85" width="44" height="13" rx="5" fill="#DAA520"/>
+  <rect x="30" y="86" width="40" height="4" rx="3" fill="#FFE566" opacity="0.35"/>
+  <text x="51" y="96" text-anchor="middle" font-size="9" font-weight="900" fill="#6B3A00" font-family="Arial,sans-serif" letter-spacing="2" opacity="0.4">50</text>
+  <text x="50" y="95.5" text-anchor="middle" font-size="9" font-weight="900" fill="#1A0A00" font-family="Arial,sans-serif" letter-spacing="2">50</text>
+  <ellipse cx="50" cy="71" rx="10" ry="2.8" fill="#5D3A1A" opacity="0.55"/>
+  <path d="M50,71 C50.5,58 50,46 50,34 C50,22 50,16 50,11" stroke="#1B5E20" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M50,71 C50.5,58 50,46 50,34 C50,22 50,16 50,11" stroke="#4CAF50" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M50,59 C43,53 33,51 28,42 C36,40 46,47 50,55 Z" fill="#2E7D32"/>
+  <path d="M50,58 C44,52 35,50 30,42 C38,40 47,46 50,54 Z" fill="#4CAF50"/>
+  <path d="M50,47 C57,40 67,37 72,28 C63,26 53,33 50,43 Z" fill="#1B5E20"/>
+  <path d="M50,46 C57,39 66,36 70,28 C62,26 53,32 50,42 Z" fill="#66BB6A"/>
+  <path d="M50,13 C47,8 44,2 48,0 C53,3 52,9 50,13 Z" fill="#A5D6A7"/>
+  <path d="M50,13 C53,8 56,2 52,0 C47,3 48,9 50,13 Z" fill="#4CAF50"/>
+  <line x1="16" y1="11" x2="16" y2="19" stroke="#FFE066" stroke-width="1.2" opacity="0.85" stroke-linecap="round"/>
+  <line x1="12" y1="15" x2="20" y2="15" stroke="#FFE066" stroke-width="1.2" opacity="0.85" stroke-linecap="round"/>
+  <circle cx="16" cy="15" r="1.5" fill="#FFE066" opacity="0.7"/>
+  <line x1="83" y1="9" x2="83" y2="17" stroke="#FFE066" stroke-width="1.2" opacity="0.8" stroke-linecap="round"/>
+  <line x1="79" y1="13" x2="87" y2="13" stroke="#FFE066" stroke-width="1.2" opacity="0.8" stroke-linecap="round"/>
+  <circle cx="83" cy="13" r="1.5" fill="#FFE066" opacity="0.65"/>
+  <circle cx="90" cy="50" r="1.8" fill="#FFE066" opacity="0.6"/>
+  <circle cx="8" cy="46" r="1.8" fill="#FFE066" opacity="0.6"/>
+</svg>`;
 const GOLD = '황금 ';
 const DIA  = '다이아몬드 ';
 const JUICE_PRICE       = 5000;
@@ -1057,8 +1092,8 @@ const G = {
             if (roll < cum) { pickedRarity = rarity; break; }
         }
         if (!pickedRarity) return { fruit: null, count: 1 };
-        // 2. 해당 등급 내 과일 목록
-        const candidates = BASE_FRUITS.filter(f => f.rarity === pickedRarity).map(f => f.name);
+        // 2. 해당 등급 내 과일 목록 (rate:0 제외 — 드롭 불가 과일)
+        const candidates = BASE_FRUITS.filter(f => f.rarity === pickedRarity && f.rate > 0).map(f => f.name);
         if (candidates.length === 0) return { fruit: null, count: 1 };
         // 3. 랜덤 과일 선택
         let got = candidates[Math.floor(Math.random() * candidates.length)];
@@ -1123,8 +1158,8 @@ const G = {
         }
         this.recordPrices();
     },
-    sellOne(f)  { if(this.inventory[f]>0){this.inventory[f]--;this.gold+=this.prices[f];} },
-    sellAll(f)  { this.gold+=this.prices[f]*(this.inventory[f]||0); this.inventory[f]=0; },
+    sellOne(f)  { if(NO_SELL_FRUITS.includes(this.base(f)))return; if(this.inventory[f]>0){this.inventory[f]--;this.gold+=this.prices[f];} },
+    sellAll(f)  { if(NO_SELL_FRUITS.includes(this.base(f)))return; this.gold+=this.prices[f]*(this.inventory[f]||0); this.inventory[f]=0; },
     buyOne(f)   { if(this.gold<this.prices[f])return false; this.gold-=this.prices[f]; this.inventory[f]=(this.inventory[f]||0)+1; return true; },
 };
 
@@ -1585,6 +1620,11 @@ function showDrop(fruit, count) {
         if (btns) btns.classList.add('visible');
 
         $('btn-sell-now').onclick = () => {
+            if (NO_SELL_FRUITS.includes(G.base(fruit))) {
+                G.addFruit(fruit, count);
+                G.save(); refreshMain(); closeDrop();
+                return;
+            }
             G.gold += totalPrice;
             G.save(); refreshMain(); closeDrop();
         };
@@ -1596,6 +1636,7 @@ function showDrop(fruit, count) {
 }
 
 function emojiHtml(fruit) {
+    if (G.base(fruit) === '개척자의 열매') return PIONEER_SVG;
     const e = G.emoji[fruit] || (typeof fruit === 'string' ? fruit : '');
     const bf = BASE_FRUITS.find(f => f.name === G.base(fruit));
     if (G.isDia(fruit))  return `<span class="diamond">${e}</span>`;
@@ -1925,11 +1966,15 @@ function renderDetail(baseName) {
     $('detail-content').innerHTML = `
         ${mainDisplay}
         <div style="font-size:26px;font-weight:bold;color:#fff;margin-bottom:10px">${f.name}</div>
+        ${NO_SELL_FRUITS.includes(f.name) ? `
+        <div style="background:rgba(0,0,0,.45);border-radius:10px;padding:14px 18px;font-size:15px;line-height:2;margin-bottom:12px;color:#f4c542">
+            초기 개척자 50인에게 지급 — 판매 불가
+        </div>` : `
         <div style="background:rgba(0,0,0,.45);border-radius:10px;padding:14px 18px;font-size:15px;line-height:2;margin-bottom:12px">
             <div>기본 시세 &nbsp;<strong style="color:#ffd700">${G.prices[f.name].toLocaleString()} G</strong></div>
             <div><span class="golden" style="font-size:15px">${f.emoji}</span> 황금 &nbsp;<strong style="color:#ffd700">${G.prices[GOLD+f.name].toLocaleString()} G</strong></div>
             <div><span class="diamond" style="font-size:15px">${f.emoji}</span> 다이아 &nbsp;<strong style="color:#00cfff">${G.prices[DIA+f.name].toLocaleString()} G</strong></div>
-        </div>
+        </div>`}
         <div style="background:rgba(255,255,255,.06);border:1px solid #444;border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.6;color:#ddd;margin-bottom:12px">
             <strong style="color:#9be89b">능력</strong> : ${ability}
         </div>
@@ -1982,7 +2027,7 @@ function renderInv() {
                         <button class="detail-btn" data-name="${f.name}" style="width:100%">자세히</button>
                     </div>
                     <div style="flex:1.25;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;text-align:center;gap:4px;min-width:0;">
-                        <span style="font-size:40px;line-height:1">${plainEmoji}</span>
+                        <span style="font-size:40px;line-height:1">${emojiHtml(f.name)}</span>
                         <span style="font-size:13px;line-height:1.25;white-space:normal;word-break:keep-all;overflow-wrap:anywhere;">${f.name}</span>
                         <div style="color:#90ee90;font-size:11px;font-weight:bold">총 ${total.toLocaleString()}개</div>
                         <div style="color:#aaa;font-size:11px">기본 ${baseCount.toLocaleString()}개</div>
@@ -2056,6 +2101,7 @@ function renderMkt() {
         }
 
         for (const f of fruitsInRarity) {
+            if (NO_SELL_FRUITS.includes(f.name)) continue; // 판매 불가 과일은 시장에서 숨김
             const isSubOpen = expanded.mkt[f.name];
             const row = document.createElement('div');
             row.style.cssText='padding:9px 10px;margin-left:12px;margin-bottom:4px;border-radius:7px;background:#1a1a1a';
