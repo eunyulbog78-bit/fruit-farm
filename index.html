@@ -2498,7 +2498,7 @@ document.querySelectorAll('.modal').forEach(m=>{
 });
 
 // ── 초기화 ────────────────────────────────────────────────────
-function startGame() {
+async function startGame() {
     // 다른 기기에 의해 강제 로그아웃된 경우 → 닉네임 설정부터 새로 시작
     if (localStorage.getItem('fruitFarm4_kicked')) {
         localStorage.removeItem('fruitFarm4_kicked');
