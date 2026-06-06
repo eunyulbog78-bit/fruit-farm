@@ -658,10 +658,6 @@ body { background:#000 !important; }
                     style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:13px;padding:6px 12px">
                     ☁️ 연동
                 </button>
-                <button class="btn" id="btn-gift"
-                    style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:20px;padding:6px 12px">
-                    🎁
-                </button>
                 <button class="btn" id="btn-friends"
                     style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:20px;padding:6px 12px;position:relative">
                     👥
@@ -789,16 +785,6 @@ body { background:#000 !important; }
         <h2 style="color:#ffd700;margin-bottom:14px">👥 친구</h2>
         <div id="friends-content" style="overflow-y:auto;max-height:calc(92dvh - 120px)"></div>
         <button class="btn" id="btn-friends-close"
-            style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:12px;width:100%">닫기</button>
-    </div>
-</div>
-
-<!-- 선물 코드 모달 -->
-<div class="modal" id="modal-gift">
-    <div class="modal-box" style="max-width:460px;width:96%;padding:20px 18px">
-        <h2 style="color:#ffd700;margin-bottom:14px">🎁 선물 코드</h2>
-        <div id="gift-content"></div>
-        <button class="btn" id="btn-gift-close"
             style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:12px;width:100%">닫기</button>
     </div>
 </div>
@@ -935,6 +921,7 @@ const G = {
             friends:this.friends, pendingRequests:this.pendingRequests, tradeOffers:this.tradeOffers,
             saveVersion: SAVE_VERSION,
         }));
+        if (FB && this.nickname) FB.set(`inv/${encN(this.nickname)}`, this.inventory);
     },
     load() {
         const d = JSON.parse(localStorage.getItem('fruitFarm4') || 'null');
@@ -1263,105 +1250,46 @@ function updateFriendBadge() {
     if (badge) { badge.style.display = total > 0 ? 'block' : 'none'; badge.textContent = total; }
 }
 
-// ── 선물 코드 (기기 간 거래) ────────────────────────────────────
-const USED_GIFT_CODES_KEY = 'fruitFarm4_usedGiftCodes';
-function getUsedGiftCodeIdsLocal() {
-    return JSON.parse(localStorage.getItem(USED_GIFT_CODES_KEY) || '[]');
-}
-function makeGiftCodeId(code) {
-    // Stable short hash for DB key and local used list.
-    let h1 = 5381, h2 = 52711;
-    for (let i = 0; i < code.length; i++) {
-        const ch = code.charCodeAt(i);
-        h1 = ((h1 << 5) + h1) ^ ch;
-        h2 = ((h2 << 5) + h2) ^ ch;
-    }
-    return `g${(h1 >>> 0).toString(16)}${(h2 >>> 0).toString(16)}`;
-}
-async function claimGiftCode(code) {
-    const codeId = makeGiftCodeId(code);
-
-    if (FB && FIREBASE_URL) {
-        try {
-            const url = `${FIREBASE_URL}/ff/gift_used/${codeId}.json`;
-            const getRes = await fetch(url, { headers: { 'X-Firebase-ETag': 'true' } });
-            if (!getRes.ok) return null;
-
-            const etag = getRes.headers.get('ETag');
-            const current = await getRes.json();
-            if (current !== null) return false;
-
-            const payload = { usedAt: Date.now(), by: G.nickname || '?' };
-            const putRes = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(etag ? { 'if-match': etag } : {}),
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (putRes.status === 412) return false;
-            return putRes.ok ? true : null;
-        } catch {
-            return null;
-        }
-    }
-
-    const used = getUsedGiftCodeIdsLocal();
-    if (used.includes(codeId)) return false;
-    try {
-        used.push(codeId);
-        localStorage.setItem(USED_GIFT_CODES_KEY, JSON.stringify(used));
-        return true;
-    } catch {
-        return null;
-    }
-}
-
-function generateGiftCode(items, gold) {
-    const data = { v:1, from:G.nickname, items, gold };
-    // Deduct immediately
-    G.gold -= gold;
-    for (const [f,c] of Object.entries(items)) G.inventory[f] = Math.max(0,(G.inventory[f]||0)-c);
-    G.save(); refreshMain();
-    return btoa(encodeURIComponent(JSON.stringify(data)));
-}
-async function redeemGiftCode(code) {
-    try {
-        const normalizedCode = code.trim();
-        if (!normalizedCode) return alert('코드를 입력하세요.');
-
-        const data = JSON.parse(decodeURIComponent(atob(normalizedCode)));
-        if (!data || typeof data !== 'object') return alert('❌ 유효하지 않은 코드입니다.');
-
-        const claimed = await claimGiftCode(normalizedCode);
-        if (claimed === false) return alert('❌ 이미 사용한 선물 코드입니다.');
-        if (claimed === null) return alert('❌ 코드 사용 여부를 확인할 수 없습니다. 잠시 후 다시 시도하세요.');
-
-        let msg = `🎁 ${data.from || '?'}의 선물!\n`;
-        if (data.gold > 0) { G.gold += data.gold; msg += `💰 ${data.gold.toLocaleString()}G\n`; }
-        for (const [f,c] of Object.entries(data.items || {})) {
-            if (c > 0) { G.addFruit(f,c); msg += `${G.emoji[f]||f} ${f} ${c}개\n`; }
-        }
-        G.save(); refreshMain();
-        alert(msg + '\n✅ 수령 완료!');
-    } catch { alert('❌ 유효하지 않은 코드입니다.'); }
-}
 
 // ── 거래 ───────────────────────────────────────────────────────
-async function sendTrade(toNick, items, gold) {
+async function sendTrade(toNick, items, gold, wantItems, wantGold) {
     if(FB){ const e=await FB.get(`reg/${encN(toNick)}`); if(!e)return alert('존재하지 않는 닉네임입니다.'); }
     else  { const r=getNicknameRegistry(); if(!(toNick in r))return alert('존재하지 않는 닉네임입니다.'); }
-    G.gold-=gold;
+    G.gold -= gold;
     for(const[f,c]of Object.entries(items)) G.inventory[f]=Math.max(0,(G.inventory[f]||0)-c);
-    await pushMsg(toNick,{type:'trade',from:G.nickname,items,gold});
+    await pushMsg(toNick,{type:'trade',from:G.nickname,items,gold,wantItems:wantItems||{},wantGold:wantGold||0});
     G.save(); refreshMain();
     alert(`'${toNick}'에게 거래 요청을 보냈습니다!`);
 }
-function acceptTrade(offer) {
-    G.gold+=offer.gold||0;
-    for(const[f,c]of Object.entries(offer.items||{}))G.addFruit(f,c);
+function canonicalItemKey(key) {
+    // 카탈로그에 있는 키와 정확히 일치하는 것을 찾아 반환 (공백·유니코드 정규화 차이 방어)
+    const trimmed = key.trim().normalize('NFC');
+    const allKeys = Object.keys(G.emoji);
+    return allKeys.find(k => k.trim().normalize('NFC') === trimmed) || trimmed;
+}
+async function acceptTrade(offer) {
+    const wantItems = offer.wantItems || {};
+    const wantGold  = offer.wantGold  || 0;
+    // 요청된 아이템/골드 보유 확인
+    for(const[f,c]of Object.entries(wantItems)){
+        const key = canonicalItemKey(f);
+        if((G.inventory[key]||0) < Number(c)) return alert(`'${key}'이(가) 부족합니다. (필요 ${c}개)`);
+    }
+    if(G.gold < wantGold) return alert(`골드가 부족합니다. (필요 ${wantGold.toLocaleString()}G)`);
+    // 내가 받을 것 (offer.items + offer.gold)
+    G.gold += offer.gold||0;
+    for(const[f,c]of Object.entries(offer.items||{})){
+        G.addFruit(canonicalItemKey(f), Number(c));
+    }
+    // 상대가 원하는 것 차감 후 전송
+    G.gold -= wantGold;
+    const returnItems = {};
+    for(const[f,c]of Object.entries(wantItems)){
+        const key = canonicalItemKey(f);
+        G.inventory[key] = Math.max(0,(G.inventory[key]||0)-Number(c));
+        returnItems[key] = Number(c);
+    }
+    await pushMsg(offer.from,{type:'trade_return',from:G.nickname,items:returnItems,gold:wantGold});
     G.tradeOffers=G.tradeOffers.filter(o=>o.ts!==offer.ts);
     G.save(); refreshMain(); renderFriends(); updateFriendBadge();
 }
@@ -1371,7 +1299,6 @@ async function rejectTrade(offer) {
     G.save(); renderFriends(); updateFriendBadge();
 }
 
-// ── 선물 코드 모달 렌더 ───────────────────────────────────────
 function renderFriends() {
     const el = $('friends-content');
     const sec = (title, color='#aaa') =>
@@ -1386,14 +1313,17 @@ function renderFriends() {
         html += `<div style="color:#555;font-size:13px;padding:8px 0">받은 거래 요청이 없습니다.</div>`;
     } else {
         for (const offer of G.tradeOffers) {
-            const itemLines = Object.entries(offer.items||{})
-                .map(([f,c]) => `${G.emoji[f]||f} ${f} ×${c}`).join(', ');
-            const goldLine = (offer.gold||0) > 0 ? ` 💰${(offer.gold).toLocaleString()}G` : '';
+            const fmtItems = (items, gold) => {
+                const parts = Object.entries(items||{}).map(([f,c])=>{ const k=canonicalItemKey(f); return `${G.emoji[k]||''} ${k} ×${c}`; });
+                if((gold||0)>0) parts.push(`💰${Number(gold).toLocaleString()}G`);
+                return parts.length ? parts.join(', ') : '없음';
+            };
             html += `<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:10px 12px;margin-bottom:8px">
-                <div style="color:#fff;font-size:13px;margin-bottom:6px">
-                    <span style="color:#0f0;font-weight:bold">${offer.from}</span>님의 선물
+                <div style="color:#fff;font-size:13px;margin-bottom:8px">
+                    <span style="color:#0f0;font-weight:bold">${offer.from}</span>님의 거래 요청
                 </div>
-                <div style="color:#aaa;font-size:12px;margin-bottom:8px">${itemLines}${goldLine}</div>
+                <div style="font-size:12px;margin-bottom:4px"><span style="color:#ffd700">📤 줄 것:</span> <span style="color:#aaa">${fmtItems(offer.items, offer.gold)}</span></div>
+                <div style="font-size:12px;margin-bottom:8px"><span style="color:#7af">📥 받을 것:</span> <span style="color:#aaa">${fmtItems(offer.wantItems, offer.wantGold)}</span></div>
                 <div style="display:flex;gap:6px">
                     <button class="btn tf-accept" data-ts="${offer.ts}"
                         style="flex:1;background:#1a4a1a;color:#0f0;font-size:13px;padding:7px">✔ 수락</button>
@@ -1469,128 +1399,99 @@ function renderFriends() {
     $('btn-send-freq').onclick = () => { sendFriendRequest($('inp-friend-nick').value.trim()); };
 }
 
-function renderGift() {
-    const el = $('gift-content');
-    el.innerHTML = `
-        <div style="color:#aaa;font-size:13px;margin-bottom:14px;line-height:1.7">
-            과일·골드를 코드로 변환해 친구에게 전달하세요.<br>
-            친구가 코드를 수령하면 즉시 지급됩니다.
-        </div>
-        <button class="btn" id="btn-make-code"
-            style="width:100%;background:#1a5c8a;color:#fff;font-size:15px;padding:14px;margin-bottom:16px">
-            🎁 선물 코드 생성
-        </button>
-        <div style="color:#aaa;font-size:12px;font-weight:bold;letter-spacing:1px;margin-bottom:8px">코드 수령</div>
-        <div style="display:flex;gap:8px">
-            <input id="inp-gift-code" type="text" placeholder="코드 붙여넣기"
-                style="flex:1;padding:11px;font-size:12px;background:#222;color:#fff;
-                       border:1px solid #444;border-radius:8px;font-family:monospace">
-            <button class="btn" id="btn-redeem-code"
-                style="background:#2a6a2a;color:#fff;font-size:14px;padding:11px 16px">수령</button>
-        </div>`;
-    $('btn-make-code').onclick  = () => openGiftCodeModal();
-    $('btn-redeem-code').onclick = () => redeemGiftCode($('inp-gift-code').value);
-}
-
 // ── 거래 모달 ─────────────────────────────────────────────────
-function openTradeModal(toNick) {
+async function openTradeModal(toNick) {
     const el = $('trade-content');
-    const state = { items:{}, gold:0 };
-    const render = () => {
-        const totalStr = Object.entries(state.items).filter(([,c])=>c>0).map(([f,c])=>`${G.emoji[f]||f}×${c}`).join(' ');
-        let html = `<div style="color:#aaa;font-size:12px;margin-bottom:10px"><strong style="color:#0f0">${toNick}</strong>에게 보낼 항목을 선택하세요</div>`;
-        // 골드
-        html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:#1a1a1a;border-radius:6px">
-            <span style="color:#ffd700;flex:1">💰 골드</span>
-            <input id="trade-gold" type="number" min="0" max="${G.gold}" value="${state.gold}"
-                style="width:100px;padding:4px;background:#222;color:#fff;border:1px solid #444;border-radius:4px;font-size:12px">
-            <span style="color:#aaa;font-size:11px">보유: ${G.gold.toLocaleString()}</span>
+    el.innerHTML = `<div style="color:#aaa;text-align:center;padding:20px">친구 인벤토리 불러오는 중...</div>`;
+    closeModal('modal-friends');
+    openModal('modal-trade');
+
+    const friendInv = (FB ? await FB.get(`inv/${encN(toNick)}`) : null) || {};
+    const state = { offerItems:{}, offerGold:0, wantItems:{}, wantGold:0 };
+
+    const countRow = (name, cur, max, plusCls, minusCls) =>
+        `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#1a1a1a;border-radius:6px;margin-bottom:4px">
+            <span style="flex:1;color:#fff;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${emojiHtml(name)} ${name}</span>
+            <button class="btn ${minusCls}" data-n="${name}" style="background:#333;color:#fff;width:26px;height:26px;padding:0;font-size:14px;flex-shrink:0">-</button>
+            <span style="color:#0f0;width:22px;text-align:center;font-size:13px;flex-shrink:0">${cur}</span>
+            <button class="btn ${plusCls}" data-n="${name}" style="background:#333;color:#fff;width:26px;height:26px;padding:0;font-size:14px;flex-shrink:0">+</button>
+            <span style="color:#555;font-size:11px;width:36px;text-align:right;flex-shrink:0">/${max}</span>
         </div>`;
-        // 과일
-        for (const f of BASE_FRUITS) {
+
+    const render = () => {
+        const offerSummary = Object.entries(state.offerItems).filter(([,c])=>c>0).map(([f,c])=>`${G.emoji[f]||f}×${c}`).join(' ') || '없음';
+        const wantSummary  = Object.entries(state.wantItems).filter(([,c])=>c>0).map(([f,c])=>`${G.emoji[f]||f}×${c}`).join(' ')  || '없음';
+
+        let html = `<div style="overflow-y:auto;max-height:calc(92dvh - 130px)">`;
+
+        // ── 내가 줄 것 ──────────────────────────────────
+        html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="color:#ffd700;font-size:12px;font-weight:bold">📤 내가 줄 것</span>
+            <span style="color:#aaa;font-size:11px">${offerSummary} ${state.offerGold>0?`💰${state.offerGold.toLocaleString()}G`:''}</span>
+        </div>`;
+        html += `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#1a1a1a;border-radius:6px;margin-bottom:4px">
+            <span style="flex:1;color:#ffd700;font-size:12px">💰 골드</span>
+            <input id="trade-offer-gold" type="number" min="0" value="${state.offerGold}"
+                style="width:80px;padding:3px 6px;background:#222;color:#fff;border:1px solid #444;border-radius:4px;font-size:12px;text-align:right">
+            <span style="color:#555;font-size:11px;width:36px;text-align:right">/${G.gold.toLocaleString()}</span>
+        </div>`;
+        let hasMyItems = false;
+        for (const f of BASE_FRUITS)
             for (const name of [f.name, GOLD+f.name, DIA+f.name]) {
-                const inv = G.inventory[name]||0;
-                if (inv <= 0) continue;
-                const cur = state.items[name]||0;
-                html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:6px 10px;background:#1a1a1a;border-radius:6px">
-                    <span style="flex:1;color:#fff;font-size:13px">${emojiHtml(name)} ${name}</span>
-                    <button class="btn ti-m" data-n="${name}" style="background:#333;color:#fff;padding:2px 8px;font-size:14px">-</button>
-                    <span style="color:#0f0;min-width:20px;text-align:center;font-size:13px">${cur}</span>
-                    <button class="btn ti-p" data-n="${name}" style="background:#333;color:#fff;padding:2px 8px;font-size:14px">+</button>
-                    <span style="color:#555;font-size:11px">/${inv}</span>
-                </div>`;
+                const inv = G.inventory[name]||0; if (inv<=0) continue;
+                hasMyItems = true;
+                html += countRow(name, state.offerItems[name]||0, inv, 'to-p', 'to-m');
             }
-        }
-        html += `<div style="margin-top:10px;padding:10px;background:#111;border-radius:6px;font-size:12px;color:#aaa;min-height:32px">
-            선택: ${totalStr||'없음'} ${state.gold>0?`💰${state.gold.toLocaleString()}G`:''}
-        </div>
+        if (!hasMyItems) html += `<div style="color:#555;font-size:12px;padding:6px 8px">보유 중인 과일이 없습니다.</div>`;
+
+        // ── 내가 받을 것 ─────────────────────────────────
+        html += `<div style="border-top:1px solid #2a2a2a;margin:10px 0 8px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="color:#7af;font-size:12px;font-weight:bold">📥 내가 받을 것 <span style="color:#555;font-size:11px;font-weight:normal">(${toNick} 보유)</span></span>
+            <span style="color:#aaa;font-size:11px">${wantSummary} ${state.wantGold>0?`💰${state.wantGold.toLocaleString()}G`:''}</span>
+        </div>`;
+        html += `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#1a1a1a;border-radius:6px;margin-bottom:4px">
+            <span style="flex:1;color:#ffd700;font-size:12px">💰 골드</span>
+            <input id="trade-want-gold" type="number" min="0" value="${state.wantGold}"
+                style="width:80px;padding:3px 6px;background:#222;color:#fff;border:1px solid #444;border-radius:4px;font-size:12px;text-align:right">
+        </div>`;
+        let hasFriendItems = false;
+        for (const f of BASE_FRUITS)
+            for (const name of [f.name, GOLD+f.name, DIA+f.name]) {
+                const inv = friendInv[name]||0; if (inv<=0) continue;
+                hasFriendItems = true;
+                html += countRow(name, state.wantItems[name]||0, inv, 'tw-p', 'tw-m');
+            }
+        if (!hasFriendItems) html += `<div style="color:#555;font-size:12px;padding:6px 8px">${toNick}님이 보유한 과일이 없습니다.</div>`;
+
+        html += `</div>
         <button class="btn" id="btn-do-trade"
             style="width:100%;background:#cc4400;color:#fff;font-size:14px;padding:10px;margin-top:8px">거래 요청 보내기</button>`;
         el.innerHTML = html;
-        el.querySelectorAll('.ti-p').forEach(b=>b.onclick=()=>{
-            const n=b.dataset.n; state.items[n]=Math.min((state.items[n]||0)+1,(G.inventory[n]||0)); render();
-        });
-        el.querySelectorAll('.ti-m').forEach(b=>b.onclick=()=>{
-            const n=b.dataset.n; state.items[n]=Math.max((state.items[n]||0)-1,0); render();
-        });
+
+        el.querySelectorAll('.to-p').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.offerItems[n]=Math.min((state.offerItems[n]||0)+1,(G.inventory[n]||0)); syncGold(); render(); });
+        el.querySelectorAll('.to-m').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.offerItems[n]=Math.max((state.offerItems[n]||0)-1,0); syncGold(); render(); });
+        el.querySelectorAll('.tw-p').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.wantItems[n]=Math.min((state.wantItems[n]||0)+1,(friendInv[n]||0)); syncGold(); render(); });
+        el.querySelectorAll('.tw-m').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.wantItems[n]=Math.max((state.wantItems[n]||0)-1,0); syncGold(); render(); });
+
+        const syncGold = () => {
+            state.offerGold = parseInt($('trade-offer-gold')?.value)||0;
+            state.wantGold  = parseInt($('trade-want-gold')?.value)||0;
+        };
+
         $('btn-do-trade').onclick=async()=>{
-            state.gold=parseInt($('trade-gold').value)||0;
-            const items=Object.fromEntries(Object.entries(state.items).filter(([,c])=>c>0));
-            if (!Object.keys(items).length && state.gold<=0) return alert('보낼 항목을 선택하세요.');
-            if (state.gold > G.gold) return alert('골드가 부족합니다.');
-            await sendTrade(toNick, items, state.gold);
+            syncGold();
+            const offerItems = Object.fromEntries(Object.entries(state.offerItems).filter(([,c])=>c>0));
+            const wantItems  = Object.fromEntries(Object.entries(state.wantItems).filter(([,c])=>c>0));
+            if (!Object.keys(offerItems).length && state.offerGold<=0) return alert('줄 항목을 선택하세요.');
+            if (state.offerGold > G.gold) return alert('골드가 부족합니다.');
+            await sendTrade(toNick, offerItems, state.offerGold, wantItems, state.wantGold);
             closeModal('modal-trade');
         };
     };
     render();
-    closeModal('modal-friends');
-    openModal('modal-trade');
 }
 
-function openGiftCodeModal() {
-    const el = $('trade-content');
-    const state = { items:{}, gold:0 };
-    const render = () => {
-        let html = `<div style="color:#aaa;font-size:12px;margin-bottom:10px">다른 기기의 친구에게 보낼 항목을 선택하세요</div>`;
-        html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:#1a1a1a;border-radius:6px">
-            <span style="color:#ffd700;flex:1">💰 골드</span>
-            <input id="gift-gold" type="number" min="0" max="${G.gold}" value="${state.gold}"
-                style="width:100px;padding:4px;background:#222;color:#fff;border:1px solid #444;border-radius:4px;font-size:12px">
-        </div>`;
-        for (const f of BASE_FRUITS) {
-            for (const name of [f.name, GOLD+f.name, DIA+f.name]) {
-                const inv = G.inventory[name]||0; if (inv<=0) continue;
-                const cur = state.items[name]||0;
-                html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:6px 10px;background:#1a1a1a;border-radius:6px">
-                    <span style="flex:1;color:#fff;font-size:13px">${emojiHtml(name)} ${name}</span>
-                    <button class="btn gi-m" data-n="${name}" style="background:#333;color:#fff;padding:2px 8px;font-size:14px">-</button>
-                    <span style="color:#0f0;min-width:20px;text-align:center;font-size:13px">${cur}</span>
-                    <button class="btn gi-p" data-n="${name}" style="background:#333;color:#fff;padding:2px 8px;font-size:14px">+</button>
-                    <span style="color:#555;font-size:11px">/${inv}</span>
-                </div>`;
-            }
-        }
-        html += `<button class="btn" id="btn-gen-code" style="width:100%;background:#1a5c8a;color:#fff;font-size:14px;padding:10px;margin-top:8px">코드 생성</button>
-        <div id="gift-code-out" style="margin-top:8px"></div>`;
-        el.innerHTML = html;
-        el.querySelectorAll('.gi-p').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.items[n]=Math.min((state.items[n]||0)+1,(G.inventory[n]||0)); render(); });
-        el.querySelectorAll('.gi-m').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.items[n]=Math.max((state.items[n]||0)-1,0); render(); });
-        $('btn-gen-code').onclick=()=>{
-            state.gold=parseInt($('gift-gold').value)||0;
-            const items=Object.fromEntries(Object.entries(state.items).filter(([,c])=>c>0));
-            if (!Object.keys(items).length && state.gold<=0) return alert('보낼 항목을 선택하세요.');
-            if (state.gold > G.gold) return alert('골드가 부족합니다.');
-            const code = generateGiftCode(items, state.gold);
-            $('gift-code-out').innerHTML = `<textarea readonly onclick="this.select()"
-                style="width:100%;height:60px;background:#111;color:#0f0;border:1px solid #444;
-                       border-radius:6px;padding:8px;font-size:10px;font-family:monospace;resize:none">${code}</textarea>
-                <div style="color:#888;font-size:11px;text-align:center;margin-top:4px">코드를 복사해 친구에게 전달하세요</div>`;
-        };
-    };
-    render();
-    closeModal('modal-friends');
-    openModal('modal-trade');
-}
 
 // ── UI 유틸 ───────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -2119,7 +2020,6 @@ function mktRow(name, color) {
         <div style="display:flex;gap:4px">
             <button class="btn ms1" data-f="${name}" style="flex:1;background:#cc4400;color:#fff;font-size:11px;padding:6px 0">1개 팔기</button>
             <button class="btn msa" data-f="${name}" style="flex:1;background:#8b0000;color:#fff;font-size:11px;padding:6px 0">전부 팔기</button>
-            <button class="btn mb1" data-f="${name}" style="flex:1;background:#006b6b;color:#fff;font-size:11px;padding:6px 0">1개 구매</button>
         </div>`;
     return d;
 }
@@ -2171,7 +2071,6 @@ function renderMkt() {
                 <div style="display:flex;gap:4px">
                     <button class="btn ms1" data-f="${f.name}" style="flex:1;background:#cc4400;color:#fff;font-size:11px;padding:6px 0">1개 팔기</button>
                     <button class="btn msa" data-f="${f.name}" style="flex:1;background:#8b0000;color:#fff;font-size:11px;padding:6px 0">전부 팔기</button>
-                    <button class="btn mb1" data-f="${f.name}" style="flex:1;background:#006b6b;color:#fff;font-size:11px;padding:6px 0">1개 구매</button>
                 </div>`;
             row.querySelector('.toggle-btn').onclick=(e)=>{ e.stopPropagation(); expanded.mkt[f.name]=!isSubOpen; renderMkt(); };
             content.appendChild(row);
@@ -2185,7 +2084,6 @@ function renderMkt() {
 
     content.querySelectorAll('.ms1').forEach(b=>b.onclick=()=>{G.sellOne(b.dataset.f);G.save();renderMkt();refreshMain();});
     content.querySelectorAll('.msa').forEach(b=>b.onclick=()=>{G.sellAll(b.dataset.f);G.save();renderMkt();refreshMain();});
-    content.querySelectorAll('.mb1').forEach(b=>b.onclick=()=>{G.buyOne(b.dataset.f);G.save();renderMkt();refreshMain();});
 }
 
 // ── 장착 ─────────────────────────────────────────────────────
@@ -2436,8 +2334,6 @@ $('action-btn').onclick = () => {
 
 // 프로필 버튼 비활성화
 $('btn-profile-close').onclick = ()=>{ closeModal('modal-profile'); refreshMain(); };
-$('btn-gift').onclick         = ()=>{ renderGift(); openModal('modal-gift'); };
-$('btn-gift-close').onclick   = ()=>{ closeModal('modal-gift'); };
 $('btn-friends').onclick      = ()=>{ renderFriends(); openModal('modal-friends'); };
 $('btn-friends-close').onclick= ()=>{ closeModal('modal-friends'); };
 $('btn-trade-close').onclick  = ()=>{ closeModal('modal-trade'); };
