@@ -658,9 +658,13 @@ body { background:#000 !important; }
                     style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:13px;padding:6px 12px">
                     ☁️ 연동
                 </button>
+                <button class="btn" id="btn-gift"
+                    style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:20px;padding:6px 12px">
+                    🎁
+                </button>
                 <button class="btn" id="btn-friends"
-                    style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:22px;padding:6px 14px;position:relative">
-                    📦
+                    style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:20px;padding:6px 12px;position:relative">
+                    👥
                 </button>
                 <button class="btn" id="btn-profile" style="display:none">👤</button>
             </div>
@@ -781,10 +785,20 @@ body { background:#000 !important; }
 
 <!-- 친구 모달 -->
 <div class="modal" id="modal-friends">
-    <div class="modal-box">
-        <h2 style="color:#ffd700;margin-bottom:12px">📦 선물 코드</h2>
-        <div id="friends-content"></div>
+    <div class="modal-box" style="max-width:520px;width:96%;max-height:92dvh;padding:20px 18px">
+        <h2 style="color:#ffd700;margin-bottom:14px">👥 친구</h2>
+        <div id="friends-content" style="overflow-y:auto;max-height:calc(92dvh - 120px)"></div>
         <button class="btn" id="btn-friends-close"
+            style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:12px;width:100%">닫기</button>
+    </div>
+</div>
+
+<!-- 선물 코드 모달 -->
+<div class="modal" id="modal-gift">
+    <div class="modal-box" style="max-width:460px;width:96%;padding:20px 18px">
+        <h2 style="color:#ffd700;margin-bottom:14px">🎁 선물 코드</h2>
+        <div id="gift-content"></div>
+        <button class="btn" id="btn-gift-close"
             style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:12px;width:100%">닫기</button>
     </div>
 </div>
@@ -1360,27 +1374,121 @@ async function rejectTrade(offer) {
 // ── 선물 코드 모달 렌더 ───────────────────────────────────────
 function renderFriends() {
     const el = $('friends-content');
+    const sec = (title, color='#aaa') =>
+        `<div style="color:${color};font-size:12px;font-weight:bold;letter-spacing:1px;margin:16px 0 8px">${title}</div>`;
+    const divider = `<div style="border-top:1px solid #2a2a2a;margin:14px 0"></div>`;
+
+    let html = '';
+
+    // ── 거래 요청 ──────────────────────────────────────────────
+    html += sec(`🤝 거래 요청 (${G.tradeOffers.length})`, '#ffd700');
+    if (G.tradeOffers.length === 0) {
+        html += `<div style="color:#555;font-size:13px;padding:8px 0">받은 거래 요청이 없습니다.</div>`;
+    } else {
+        for (const offer of G.tradeOffers) {
+            const itemLines = Object.entries(offer.items||{})
+                .map(([f,c]) => `${G.emoji[f]||f} ${f} ×${c}`).join(', ');
+            const goldLine = (offer.gold||0) > 0 ? ` 💰${(offer.gold).toLocaleString()}G` : '';
+            html += `<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:10px 12px;margin-bottom:8px">
+                <div style="color:#fff;font-size:13px;margin-bottom:6px">
+                    <span style="color:#0f0;font-weight:bold">${offer.from}</span>님의 선물
+                </div>
+                <div style="color:#aaa;font-size:12px;margin-bottom:8px">${itemLines}${goldLine}</div>
+                <div style="display:flex;gap:6px">
+                    <button class="btn tf-accept" data-ts="${offer.ts}"
+                        style="flex:1;background:#1a4a1a;color:#0f0;font-size:13px;padding:7px">✔ 수락</button>
+                    <button class="btn tf-reject" data-ts="${offer.ts}"
+                        style="flex:1;background:#3a1a1a;color:#f44;font-size:13px;padding:7px">✘ 거절</button>
+                </div>
+            </div>`;
+        }
+    }
+
+    html += divider;
+
+    // ── 친구 요청 ──────────────────────────────────────────────
+    html += sec(`📨 친구 요청 (${G.pendingRequests.length})`);
+    if (G.pendingRequests.length === 0) {
+        html += `<div style="color:#555;font-size:13px;padding:8px 0">받은 친구 요청이 없습니다.</div>`;
+    } else {
+        for (const nick of G.pendingRequests) {
+            html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1a1a1a;border-radius:8px;margin-bottom:6px">
+                <span style="flex:1;color:#fff;font-size:13px">👤 ${nick}</span>
+                <button class="btn fr-accept" data-nick="${nick}"
+                    style="background:#1a4a1a;color:#0f0;font-size:12px;padding:6px 12px">수락</button>
+                <button class="btn fr-reject" data-nick="${nick}"
+                    style="background:#3a1a1a;color:#f44;font-size:12px;padding:6px 12px">거절</button>
+            </div>`;
+        }
+    }
+
+    html += divider;
+
+    // ── 친구 목록 ──────────────────────────────────────────────
+    html += sec(`👥 친구 목록 (${G.friends.length})`);
+    if (G.friends.length === 0) {
+        html += `<div style="color:#555;font-size:13px;padding:8px 0">아직 친구가 없습니다.</div>`;
+    } else {
+        for (const nick of G.friends) {
+            html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1a1a1a;border-radius:8px;margin-bottom:6px">
+                <span style="flex:1;color:#fff;font-size:13px">👤 ${nick}</span>
+                <button class="btn fl-trade" data-nick="${nick}"
+                    style="background:#1a3a5a;color:#7af;font-size:12px;padding:6px 12px">거래</button>
+                <button class="btn fl-remove" data-nick="${nick}"
+                    style="background:#2a2a2a;color:#888;font-size:12px;padding:6px 12px">삭제</button>
+            </div>`;
+        }
+    }
+
+    html += divider;
+
+    // ── 친구 추가 ──────────────────────────────────────────────
+    html += sec('➕ 친구 추가');
+    html += `<div style="display:flex;gap:8px;margin-bottom:4px">
+        <input id="inp-friend-nick" type="text" placeholder="닉네임 입력"
+            style="flex:1;padding:10px;font-size:13px;background:#222;color:#fff;border:1px solid #444;border-radius:8px">
+        <button class="btn" id="btn-send-freq"
+            style="background:#2a4a2a;color:#0f0;font-size:13px;padding:10px 16px">요청</button>
+    </div>`;
+
+    el.innerHTML = html;
+
+    // 이벤트 바인딩
+    el.querySelectorAll('.tf-accept').forEach(b => b.onclick = () => {
+        const offer = G.tradeOffers.find(o => o.ts == b.dataset.ts);
+        if (offer) { acceptTrade(offer); renderFriends(); }
+    });
+    el.querySelectorAll('.tf-reject').forEach(b => b.onclick = () => {
+        const offer = G.tradeOffers.find(o => o.ts == b.dataset.ts);
+        if (offer) { rejectTrade(offer); renderFriends(); }
+    });
+    el.querySelectorAll('.fr-accept').forEach(b => b.onclick = () => { acceptFriend(b.dataset.nick); renderFriends(); });
+    el.querySelectorAll('.fr-reject').forEach(b => b.onclick = () => { rejectFriend(b.dataset.nick); renderFriends(); });
+    el.querySelectorAll('.fl-trade').forEach(b => b.onclick = () => { closeModal('modal-friends'); openTradeModal(b.dataset.nick); });
+    el.querySelectorAll('.fl-remove').forEach(b => b.onclick = () => { if(confirm(`'${b.dataset.nick}'을(를) 친구 목록에서 삭제할까요?`)) { removeFriend(b.dataset.nick); renderFriends(); } });
+    $('btn-send-freq').onclick = () => { sendFriendRequest($('inp-friend-nick').value.trim()); };
+}
+
+function renderGift() {
+    const el = $('gift-content');
     el.innerHTML = `
-        <div style="margin-bottom:14px">
-            <div style="color:#aaa;font-size:14px;margin-bottom:10px;line-height:1.6">
-                과일·골드를 코드로 변환해 친구에게 전달하세요.<br>
-                친구가 코드를 수령하면 즉시 지급됩니다.
-            </div>
+        <div style="color:#aaa;font-size:13px;margin-bottom:14px;line-height:1.7">
+            과일·골드를 코드로 변환해 친구에게 전달하세요.<br>
+            친구가 코드를 수령하면 즉시 지급됩니다.
         </div>
         <button class="btn" id="btn-make-code"
-            style="width:100%;background:#1a5c8a;color:#fff;font-size:16px;padding:14px;margin-bottom:12px">
+            style="width:100%;background:#1a5c8a;color:#fff;font-size:15px;padding:14px;margin-bottom:16px">
             🎁 선물 코드 생성
         </button>
-        <div style="color:#aaa;font-size:14px;font-weight:bold;margin-bottom:8px">코드 수령</div>
+        <div style="color:#aaa;font-size:12px;font-weight:bold;letter-spacing:1px;margin-bottom:8px">코드 수령</div>
         <div style="display:flex;gap:8px">
             <input id="inp-gift-code" type="text" placeholder="코드 붙여넣기"
-                style="flex:1;padding:12px;font-size:12px;background:#222;color:#fff;
+                style="flex:1;padding:11px;font-size:12px;background:#222;color:#fff;
                        border:1px solid #444;border-radius:8px;font-family:monospace">
             <button class="btn" id="btn-redeem-code"
-                style="background:#2a6a2a;color:#fff;font-size:15px;padding:12px 18px">수령</button>
+                style="background:#2a6a2a;color:#fff;font-size:14px;padding:11px 16px">수령</button>
         </div>`;
-
-    $('btn-make-code').onclick = () => openGiftCodeModal();
+    $('btn-make-code').onclick  = () => openGiftCodeModal();
     $('btn-redeem-code').onclick = () => redeemGiftCode($('inp-gift-code').value);
 }
 
@@ -2328,6 +2436,8 @@ $('action-btn').onclick = () => {
 
 // 프로필 버튼 비활성화
 $('btn-profile-close').onclick = ()=>{ closeModal('modal-profile'); refreshMain(); };
+$('btn-gift').onclick         = ()=>{ renderGift(); openModal('modal-gift'); };
+$('btn-gift-close').onclick   = ()=>{ closeModal('modal-gift'); };
 $('btn-friends').onclick      = ()=>{ renderFriends(); openModal('modal-friends'); };
 $('btn-friends-close').onclick= ()=>{ closeModal('modal-friends'); };
 $('btn-trade-close').onclick  = ()=>{ closeModal('modal-trade'); };
