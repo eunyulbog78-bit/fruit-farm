@@ -950,6 +950,7 @@ const G = {
             bluePotionUntil:this.bluePotionUntil, redPotionPending:this.redPotionPending, purplePotionUntil:this.purplePotionUntil,
             ownedTitles:this.ownedTitles, equippedTitle:this.equippedTitle,
             lastDate:this.lastDate,
+            priceRatios: Object.fromEntries(BASE_FRUITS.filter(f=>f.price>0).map(f=>[f.name, this.prices[f.name]/f.price])),
             prices:this.prices, inventory:this.inventory,
             sellOrders:this.sellOrders, buyOrders:this.buyOrders,
             priceHistory:this.priceHistory,
@@ -962,17 +963,18 @@ const G = {
         const d = JSON.parse(localStorage.getItem('fruitFarm4') || 'null');
         if (!d) return;
         Object.assign(this, d);
-        // 버전이 다르면 가격 초기화 (업데이트 적용)
+        // 버전이 다르면 가격 초기화
         if (!d.saveVersion || d.saveVersion < SAVE_VERSION) {
-            this.prices = {...cat.prices};
             this.priceHistory = {};
-        } else {
-            this.prices = Object.assign({...cat.prices}, d.prices || {});
         }
-        // 황금/다이아 가격은 항상 현재 배율로 재계산 (배율 변경 즉시 모든 계정에 반영)
+        // 기본 가격은 항상 현재 코드 기준으로 재계산 — 코드 변경 시 즉시 반영
+        // priceRatios(시세 변동 비율)가 있으면 보존, 없으면 기준가 그대로 사용
         for (const f of BASE_FRUITS) {
-            this.prices[GOLD+f.name] = this.prices[f.name] * 10;
-            this.prices[DIA+f.name]  = this.prices[f.name] * 25;
+            const ratio = d.priceRatios?.[f.name] ?? 1;
+            const clamped = Math.max(0.5, Math.min(1.5, ratio));
+            this.prices[f.name]        = Math.round(f.price * clamped);
+            this.prices[GOLD+f.name]   = this.prices[f.name] * 10;
+            this.prices[DIA+f.name]    = this.prices[f.name] * 25;
         }
         this.inventory = Object.assign({...cat.inv}, d.inventory || {});
         if (d.sellOrders)   this.sellOrders   = d.sellOrders;
