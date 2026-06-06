@@ -662,6 +662,7 @@ body { background:#000 !important; }
                     style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:20px;padding:6px 12px;position:relative">
                     👥
                 </button>
+                <button class="btn" id="btn-ban-open" style="display:none;background:#550000;border:1px solid #ff4444;border-radius:8px;color:#ff4444;font-size:13px;padding:6px 10px">🚫 정지</button>
                 <button class="btn" id="btn-profile" style="display:none">👤</button>
             </div>
         </div>
@@ -807,6 +808,31 @@ body { background:#000 !important; }
         <button class="btn" id="btn-profile-close"
             style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
     </div>
+</div>
+
+<!-- 유저 정지 모달 (관리자 전용) -->
+<div class="modal" id="modal-ban">
+    <div class="modal-box">
+        <h2 style="color:#ff4444;margin-bottom:14px">🚫 유저 정지 관리</h2>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+            <input id="ban-nick-input" placeholder="닉네임 입력" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid #555;background:#111;color:#fff;font-size:14px"/>
+            <input id="ban-reason-input" placeholder="사유" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid #555;background:#111;color:#fff;font-size:14px"/>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+            <button class="btn" id="btn-ban-do" style="flex:1;background:#cc0000;color:#fff;padding:10px 0;font-size:14px">🚫 정지</button>
+            <button class="btn" id="btn-ban-undo" style="flex:1;background:#226622;color:#fff;padding:10px 0;font-size:14px">✅ 정지 해제</button>
+        </div>
+        <div style="font-size:13px;color:#aaa;margin-bottom:6px">현재 정지 유저</div>
+        <div id="ban-list" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+        <button class="btn" id="btn-ban-close" style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
+    </div>
+</div>
+
+<!-- 정지 화면 -->
+<div class="screen" id="scr-banned" style="align-items:center;justify-content:center;gap:16px;text-align:center">
+    <div style="font-size:64px">🚫</div>
+    <div style="font-size:22px;font-weight:bold;color:#ff4444">계정이 정지되었습니다</div>
+    <div id="ban-reason-display" style="color:#aaa;font-size:14px;max-width:280px;line-height:1.6"></div>
 </div>
 
 <script>
@@ -1830,7 +1856,7 @@ function updateEquip() {
                  : base==='코코넛'?'효과: 클릭수 ×2 · 드롭 확률 ×2'
                  : base==='레몬'?'효과: 50% 확률 과일 2배 지급'
                  : base==='할머니가 숨겨둔 감'?'효과: 30% 확률 과일 2배 지급 · 드롭 확률 ×2.5'
-                 : base==='별혼과'?'효과: 드롭 확률 ×3 · 15% 상위 등급 등장':'효과: 없음';
+                 : base==='별혼과'?'효과: 드롭 확률 ×1.5 · 30% 상위 등급 등장 · 성공 시 10% 추가 상위 등급':'효과: 없음';
 
     const btn=$('action-btn');
     btn.innerHTML = f ? emojiHtml(f) : emoji;
@@ -2489,16 +2515,97 @@ function startGame() {
     if (!Object.keys(G.priceHistory).length) G.recordPrices();
     applyBg();
     if (G.nickname) {
+        // 정지 여부 확인
+        const banInfo = await checkBanned(G.nickname);
+        if (banInfo) {
+            $('ban-reason-display').textContent = `사유: ${banInfo.reason||'규칙 위반'}`;
+            show('scr-banned'); return;
+        }
         registerNickname(G.nickname);
         processMailbox();
         show('scr-main'); refreshMain(); updateFriendBadge();
+        // 관리자 전용 버튼 표시
+        if (G.nickname === '관리자') $('btn-ban-open').style.display = '';
     } else {
         show('scr-start');
     }
     setInterval(()=>{ if(G.checkDay()){G.save();refreshMain();} }, 30000);
     setInterval(()=>{ processMailbox(); updateFriendBadge(); }, 5000);
     setInterval(checkActiveSession, 20000); // 20초마다 세션 확인
+    // 30초마다 정지 여부 재확인
+    setInterval(async ()=>{
+        if (!G.nickname) return;
+        const b = await checkBanned(G.nickname);
+        if (b) { $('ban-reason-display').textContent=`사유: ${b.reason||'규칙 위반'}`; show('scr-banned'); }
+    }, 30000);
 }
+
+// ── 정지 시스템 ──────────────────────────────────────────────
+async function checkBanned(nick) {
+    if (!FB || !nick) return null;
+    const data = await FB.get(`ban/${encN(nick)}`);
+    if (!data || typeof data !== 'object') return null;
+    return data; // { reason, ts }
+}
+
+async function banUser(nick, reason) {
+    if (!FB) return alert('Firebase 연결 필요');
+    await FB.set(`ban/${encN(nick)}`, { reason: reason||'규칙 위반', ts: Date.now() });
+    // 강제 로그아웃용 세션 무효화
+    await FB.del(`session/${encN(nick)}`);
+    alert(`'${nick}' 정지 완료`);
+    renderBanList();
+}
+
+async function unbanUser(nick) {
+    if (!FB) return alert('Firebase 연결 필요');
+    await FB.del(`ban/${encN(nick)}`);
+    alert(`'${nick}' 정지 해제 완료`);
+    renderBanList();
+}
+
+async function renderBanList() {
+    const list = $('ban-list');
+    if (!list) return;
+    list.innerHTML = '<div style="color:#666;font-size:13px">불러오는 중...</div>';
+    const data = FB ? await FB.get('ban') : null;
+    if (!data || Object.keys(data).length === 0) {
+        list.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:12px">정지된 유저 없음</div>';
+        return;
+    }
+    list.innerHTML = '';
+    for (const [key, val] of Object.entries(data)) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;background:#2a0000;border:1px solid #cc0000;border-radius:8px;padding:8px 10px';
+        const date = new Date(val.ts).toLocaleDateString('ko-KR');
+        row.innerHTML = `
+            <div style="flex:1;min-width:0">
+                <div style="color:#ff6666;font-weight:bold;font-size:13px">${key}</div>
+                <div style="color:#aaa;font-size:11px">${val.reason||''} · ${date}</div>
+            </div>
+            <button class="btn" data-nick="${key}" style="background:#226622;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px">해제</button>`;
+        row.querySelector('button').onclick = () => unbanUser(key);
+        list.appendChild(row);
+    }
+}
+
+$('btn-ban-open').onclick = () => { renderBanList(); openModal('modal-ban'); };
+$('btn-ban-close').onclick = () => closeModal('modal-ban');
+$('btn-ban-do').onclick = async () => {
+    const nick = $('ban-nick-input').value.trim();
+    const reason = $('ban-reason-input').value.trim();
+    if (!nick) return alert('닉네임을 입력하세요');
+    if (nick === '관리자') return alert('관리자는 정지할 수 없습니다');
+    await banUser(nick, reason);
+    $('ban-nick-input').value = '';
+    $('ban-reason-input').value = '';
+};
+$('btn-ban-undo').onclick = async () => {
+    const nick = $('ban-nick-input').value.trim();
+    if (!nick) return alert('닉네임을 입력하세요');
+    await unbanUser(nick);
+    $('ban-nick-input').value = '';
+};
 
 startGame();
 </script>
