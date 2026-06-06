@@ -1078,7 +1078,7 @@ const G = {
         const mult = this.eqBase==='딸기'           ? 1.1
                : this.eqBase==='코코넛'         ? 2
                : this.eqBase==='할머니가 숨겨둔 감' ? 2.5
-               : this.eqBase==='별혼과'          ? 3 : 1;
+               : this.eqBase==='별혼과'          ? 1.5 : 1;
         const rarityRates = Object.entries(RARITY_RATES).map(([rarity, rate]) => [rarity, rate * mult]);
 
         if (this.isBluePotionActive) {
@@ -1111,9 +1111,13 @@ const G = {
         if (got && this.eqBase==='포도' && Math.random()<0.05) {
             const up = upgradeRarity(got); if (up) got=up;
         }
-        // 별혼과 능력: 15% 확률로 상위 등급 과일
-        if (got && this.eqBase==='별혼과' && Math.random()<0.15) {
-            const up = upgradeRarity(got); if (up) got=up;
+        // 별혼과 능력: 30% 확률로 상위 등급, 성공 시 10% 추가 상위 등급
+        let upgradedCount = 0;
+        if (got && this.eqBase==='별혼과' && Math.random()<0.30) {
+            const up = upgradeRarity(got); if (up) { got=up; upgradedCount++; }
+            if (Math.random()<0.10) {
+                const up2 = upgradeRarity(got); if (up2) { got=up2; upgradedCount++; }
+            }
         }
 
         if (got && this.redPotionPending > 0) {
@@ -1125,7 +1129,7 @@ const G = {
         const count = (got && this.eqBase==='키위' && Math.random()<0.1) ? 2
             : (got && this.eqBase==='레몬' && Math.random()<0.5) ? 2
                 : (got && this.eqBase==='할머니가 숨겨둔 감' && Math.random()<0.3) ? 2 : 1;
-        return { fruit: got, count };
+        return { fruit: got, count, upgraded: upgradedCount };
     },
 
     addFruit(fruit, count=1) { this.inventory[fruit]=(this.inventory[fruit]||0)+count; },
@@ -1585,7 +1589,7 @@ function checkDurian() {
     return true;
 }
 
-function showDrop(fruit, count) {
+function showDrop(fruit, count, upgraded=0) {
     const rarityInfo = getFruitRarity(G.base(fruit));
     const borderColor = rarityInfo?.color || '#4caf50';
     const totalPrice = G.prices[fruit] * count;
@@ -1593,10 +1597,16 @@ function showDrop(fruit, count) {
     const priceText = count > 1
         ? `시세: ${G.prices[fruit].toLocaleString()}G × ${count} = ${totalPrice.toLocaleString()}G`
         : `시세: ${G.prices[fruit].toLocaleString()}G`;
+    const upgradeLabel = upgraded >= 2
+        ? `<span style="display:inline-block;margin-bottom:4px;padding:2px 10px;border-radius:12px;background:linear-gradient(90deg,#a855f7,#ec4899);color:#fff;font-size:12px;font-weight:bold;letter-spacing:.5px">✦ 상위 등급 2단계 등장!</span>`
+        : upgraded === 1
+        ? `<span style="display:inline-block;margin-bottom:4px;padding:2px 10px;border-radius:12px;background:linear-gradient(90deg,#6366f1,#8b5cf6);color:#fff;font-size:12px;font-weight:bold;letter-spacing:.5px">↑ 상위 등급 등장!</span>`
+        : '';
 
     const el = $('drop-notif');
     el.style.borderColor = borderColor;
     el.innerHTML = `
+        ${upgradeLabel}
         <span class="notif-emoji">${emojiHtml(fruit)}</span>
         <span class="notif-name">${fruit}${countText} 획득!</span>
         <span class="notif-price">${priceText}</span>
@@ -1930,7 +1940,7 @@ function renderDetail(baseName) {
                  : baseName==='코코넛' ? '클릭수 x2 · 드롭 확률 x2'
                  : baseName==='레몬' ? '50% 확률 과일 2배 지급'
                  : baseName==='할머니가 숨겨둔 감' ? '30% 확률 과일 2배 지급 · 드롭 확률 x2.5'
-                 : baseName==='별혼과' ? '드롭 확률 x3 · 15% 상위 등급 등장'
+                 : baseName==='별혼과' ? '드롭 확률 ×1.5 · 30% 상위 등급 등장 · 성공 시 10% 추가 상위 등급'
                  : '효과 없음';
 
     const box = document.querySelector('#modal-detail .modal-box');
@@ -2149,7 +2159,7 @@ function equipOpt(fruit, borderColor='transparent', indent=false) {
              : base==='코코넛'?`클릭수 ×2 · 드롭 확률 ×2 ${tag}`
              : base==='레몬'?`50% 확률 과일 2배 지급 ${tag}`
              : base==='할머니가 숨겨둔 감'?`30% 확률 과일 2배 지급 · 드롭 확률 ×2.5 ${tag}`
-             : base==='별혼과'?`드롭 확률 ×3 · 15% 상위 등급 등장 ${tag}`
+             : base==='별혼과'?`드롭 확률 ×1.5 · 30% 상위 등급 등장 · 성공 시 10% 추가 상위 등급 ${tag}`
              : `효과 없음 ${tag}`;
     const d=document.createElement('div');
     d.style.cssText=`padding:9px 12px;margin-bottom:4px;border-radius:8px;
@@ -2375,8 +2385,8 @@ $('action-btn').onclick = () => {
     // 두리안 도둑 0.5% 체크
     if (checkDurian()) return;
 
-    const {fruit,count}=G.tryGetFruit();
-    if (fruit) { showDrop(fruit, count); }
+    const {fruit,count,upgraded}=G.tryGetFruit();
+    if (fruit) { showDrop(fruit, count, upgraded); }
     G.save(); refreshMain();
 };
 
