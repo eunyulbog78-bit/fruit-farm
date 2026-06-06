@@ -2471,6 +2471,8 @@ function startGame() {
         return;
     }
     G.load();
+    // [MIGRATION] hjh → 관리자 닉네임 일괄 변경 (적용 후 삭제)
+    if (G.nickname === 'hjh') { G.nickname = '관리자'; G.save(); }
     G.checkDay();
     if (!Object.keys(G.priceHistory).length) G.recordPrices();
     applyBg();
