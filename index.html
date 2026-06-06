@@ -839,9 +839,11 @@ const DIA  = '다이아몬드 ';
 const JUICE_PRICE       = 5000;
 const TITLE_GABBU_PRICE = 1000000;
 const TITLE_ELON_PRICE  = 100000000;
-const BLUE_POTION_PRICE = 25000;
-const RED_POTION_PRICE  = 100000;
-const BLUE_POTION_MS    = 10 * 60 * 1000;
+const BLUE_POTION_PRICE   = 25000;
+const RED_POTION_PRICE    = 25000;
+const PURPLE_POTION_PRICE = 50000;
+const BLUE_POTION_MS      = 10 * 60 * 1000;
+const PURPLE_POTION_MS    = 20 * 60 * 1000;
 
 // 등급 설정 (startPrice: 해당 등급 과일의 기본 시작 가격)
 const RARITY = {
@@ -894,8 +896,8 @@ const G = {
     nickname:'', gold:0, day:1, clickCount:0,
     equippedFruit:null, activeBackground:'normal',
     juicePurchased:false,
-    bluePotionCount:0, redPotionCount:0,
-    bluePotionUntil:0, redPotionPending:0,
+    bluePotionCount:0, redPotionCount:0, purplePotionCount:0,
+    bluePotionUntil:0, redPotionPending:0, purplePotionUntil:0,
     ownedTitles:[], equippedTitle:null,
     lastDate:new Date().toDateString(),
     emoji:{...cat.emoji}, prices:{...cat.prices},
@@ -909,8 +911,8 @@ const G = {
             clickCount:this.clickCount, equippedFruit:this.equippedFruit,
             activeBackground:this.activeBackground,
             juicePurchased:this.juicePurchased,
-            bluePotionCount:this.bluePotionCount, redPotionCount:this.redPotionCount,
-            bluePotionUntil:this.bluePotionUntil, redPotionPending:this.redPotionPending,
+            bluePotionCount:this.bluePotionCount, redPotionCount:this.redPotionCount, purplePotionCount:this.purplePotionCount,
+            bluePotionUntil:this.bluePotionUntil, redPotionPending:this.redPotionPending, purplePotionUntil:this.purplePotionUntil,
             ownedTitles:this.ownedTitles, equippedTitle:this.equippedTitle,
             lastDate:this.lastDate,
             prices:this.prices, inventory:this.inventory,
@@ -931,6 +933,11 @@ const G = {
         } else {
             this.prices = Object.assign({...cat.prices}, d.prices || {});
         }
+        // 황금/다이아 가격은 항상 현재 배율로 재계산 (배율 변경 즉시 모든 계정에 반영)
+        for (const f of BASE_FRUITS) {
+            this.prices[GOLD+f.name] = this.prices[f.name] * 10;
+            this.prices[DIA+f.name]  = this.prices[f.name] * 25;
+        }
         this.inventory = Object.assign({...cat.inv}, d.inventory || {});
         if (d.sellOrders)   this.sellOrders   = d.sellOrders;
         if (d.buyOrders)    this.buyOrders    = d.buyOrders;
@@ -940,8 +947,10 @@ const G = {
         if (d.tradeOffers)     this.tradeOffers     = d.tradeOffers;
         this.bluePotionCount = d.bluePotionCount || 0;
         this.redPotionCount = d.redPotionCount || 0;
+        this.purplePotionCount = d.purplePotionCount || 0;
         this.bluePotionUntil = d.bluePotionUntil || 0;
         this.redPotionPending = d.redPotionPending || 0;
+        this.purplePotionUntil = d.purplePotionUntil || 0;
     },
     processPendingOrders() {
         const now = Date.now();
@@ -977,7 +986,8 @@ const G = {
     isGold(fruit) { return !!(fruit && fruit.startsWith(GOLD)); },
     isDia(fruit)  { return !!(fruit && fruit.startsWith(DIA)); },
     isMut(fruit)  { return this.isGold(fruit) || this.isDia(fruit); },
-    get isBluePotionActive() { return Date.now() < this.bluePotionUntil; },
+    get isBluePotionActive()   { return Date.now() < this.bluePotionUntil; },
+    get isPurplePotionActive() { return Date.now() < this.purplePotionUntil; },
     get eqBase() { return this.base(this.equippedFruit); },
 
     registerClick() { this.clickCount += this.eqBase==='코코넛' ? 2 : 1; },
@@ -995,6 +1005,20 @@ const G = {
         // 이미 적용 중이면 남은 시간에 누적 (2개 사용 = 20분)
         const base = Math.max(this.bluePotionUntil, Date.now());
         this.bluePotionUntil = base + BLUE_POTION_MS * n;
+        return true;
+    },
+    buyPurplePotion(n=1) {
+        const cost = PURPLE_POTION_PRICE * n;
+        if (n <= 0 || this.gold < cost) return false;
+        this.gold -= cost;
+        this.purplePotionCount += n;
+        return true;
+    },
+    usePurplePotion(n=1) {
+        if (n <= 0 || this.purplePotionCount < n) return false;
+        this.purplePotionCount -= n;
+        const base = Math.max(this.purplePotionUntil, Date.now());
+        this.purplePotionUntil = base + PURPLE_POTION_MS * n;
         return true;
     },
     buyRedPotion(n=1) {
@@ -1093,8 +1117,8 @@ const G = {
             const upperLimit = f.price * 1.5;
             const lowerLimit = f.price * 0.5;
             this.prices[f.name] = (nextPrice >= upperLimit || nextPrice <= lowerLimit) ? f.price : nextPrice;
-            this.prices[GOLD+f.name] = this.prices[f.name]*50;
-            this.prices[DIA+f.name]  = this.prices[f.name]*150;
+            this.prices[GOLD+f.name] = this.prices[f.name]*10;
+            this.prices[DIA+f.name]  = this.prices[f.name]*25;
         }
         this.recordPrices();
     },
@@ -1509,6 +1533,7 @@ function showDurian() {
 
 function checkDurian() {
     if (G.eqBase === '귤') return false;
+    if (G.isPurplePotionActive) return false;
     if (Math.random() * 100 >= 0.1) return false;
     showDurian();
     return true;
@@ -1670,10 +1695,12 @@ function refreshMain() {
     $('lbl-gold').textContent = `💰 골드: ${G.gold.toLocaleString()}`;
     $('lbl-clicks').textContent = `👆 클릭: ${G.clickCount.toLocaleString()}회`;
 
-    const blueRemainSec = Math.max(0, Math.ceil((G.bluePotionUntil - Date.now()) / 1000));
-    const blueText = G.isBluePotionActive ? ` | 🔵 블루 포션 ${Math.floor(blueRemainSec / 60)}:${String(blueRemainSec % 60).padStart(2, '0')}` : '';
-    const redText = (G.redPotionPending > 0) ? ` | 🔴 레드 포션 대기 ${G.redPotionPending}회` : '';
-    $('lbl-clicks').textContent += `${blueText}${redText}`;
+    const blueRemainSec   = Math.max(0, Math.ceil((G.bluePotionUntil   - Date.now()) / 1000));
+    const purpleRemainSec = Math.max(0, Math.ceil((G.purplePotionUntil - Date.now()) / 1000));
+    const blueText   = G.isBluePotionActive   ? ` | 🔵 블루 포션 ${Math.floor(blueRemainSec / 60)}:${String(blueRemainSec % 60).padStart(2, '0')}` : '';
+    const redText    = (G.redPotionPending > 0) ? ` | 🔴 레드 포션 대기 ${G.redPotionPending}회` : '';
+    const purpleText = G.isPurplePotionActive  ? ` | 🟣 퍼플 포션 ${Math.floor(purpleRemainSec / 60)}:${String(purpleRemainSec % 60).padStart(2, '0')}` : '';
+    $('lbl-clicks').textContent += `${blueText}${redText}${purpleText}`;
 
     // 칭호 표시
     const titleEl = $('lbl-title');
@@ -2201,6 +2228,18 @@ function renderShop() {
             stackable: true,
             onBuy: (n)=>{ if (G.buyRedPotion(n)) { G.save(); renderShop(); refreshMain(); } },
             onUse: (n)=>{ if (G.useRedPotion(n)) { G.save(); renderShop(); refreshMain(); } },
+            onOff: null,
+        },
+        {
+            id:'purple-potion', icon:'🟣', name:'퍼플 포션',
+            desc:`20분 동안 두리안 도둑 차단 · 단가 ${PURPLE_POTION_PRICE.toLocaleString()}G`,
+            price:PURPLE_POTION_PRICE,
+            owned: G.purplePotionCount > 0,
+            active: G.isPurplePotionActive,
+            qty: G.purplePotionCount,
+            stackable: true,
+            onBuy: (n)=>{ if (G.buyPurplePotion(n)) { G.save(); renderShop(); refreshMain(); } },
+            onUse: (n)=>{ if (G.usePurplePotion(n)) { G.save(); renderShop(); refreshMain(); } },
             onOff: null,
         },
     ];
