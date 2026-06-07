@@ -701,9 +701,9 @@ body { background:#000 !important; }
         <button class="btn" id="btn-shop-open"
             style="background:#1a5c8a;color:#fff;font-size:14px;padding:12px 0">
             🛒 상점</button>
-        <button class="btn" id="btn-auction-open"
-            style="background:#5a2d00;color:#ffd700;border:1px solid #aa6600;font-size:14px;padding:12px 0">
-            🔨 경매장</button>
+        <button class="btn" disabled
+            style="background:#2a2a2a;color:#555;border:1px solid #333;font-size:13px;padding:12px 0;cursor:not-allowed">
+            🔨 경매장<br><span style="font-size:10px;color:#444">업데이트 예정</span></button>
     </div>
 </div>
 
@@ -879,16 +879,6 @@ body { background:#000 !important; }
         <div id="black-result-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
         <div id="black-result-total" style="margin-top:12px;text-align:right;color:#ffd700;font-size:15px;font-weight:bold"></div>
         <button class="btn" id="btn-black-result-close" style="background:#333;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">확인</button>
-    </div>
-</div>
-
-<!-- 과일 경매 모달 -->
-<div class="modal" id="modal-auction">
-    <div class="modal-box">
-        <h2 style="color:#ffd700;margin-bottom:2px">🔨 과일 경매</h2>
-        <p style="color:#555;font-size:12px;margin-bottom:14px">매일 자정 새 경매가 시작됩니다 · 낙찰 골드는 즉시 차감</p>
-        <div id="auction-content"></div>
-        <button class="btn" id="btn-auction-close" style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
     </div>
 </div>
 
@@ -1439,8 +1429,6 @@ async function processMailbox() {
         else if(m.type==='friend_accept'){if(!G.friends.includes(m.from)){G.friends.push(m.from);changed=true;}}
         else if(m.type==='trade')    {G.tradeOffers.push(m);changed=true;}
         else if(m.type==='trade_return'){G.gold+=m.gold||0;for(const[f,c]of Object.entries(m.items||{}))G.addFruit(f,c);changed=true;}
-        else if(m.type==='auction_win'){G.addFruit(m.fruit,1);changed=true;toast(`🏆 경매 낙찰! ${m.emoji||''}${m.fruit} 획득!`);}
-        else if(m.type==='auction_refund'){G.gold+=m.gold||0;changed=true;toast(`🔨 경매 환불: ${(m.gold||0).toLocaleString()}G 반환`);}
     }
     if(changed){G.save();updateFriendBadge();refreshMain();}
 }
@@ -2614,8 +2602,6 @@ $('btn-equip-open').onclick  = ()=>{ expanded.equip={}; renderEquip(); openModal
 $('btn-equip-close').onclick  = ()=> closeModal('modal-equip');
 $('btn-detail-close').onclick = ()=> closeModal('modal-detail');
 $('btn-shop-open').onclick    = ()=>{ renderShop(); openModal('modal-shop'); };
-$('btn-auction-open').onclick = ()=>{ openModal('modal-auction'); loadAndRenderAuction(); };
-$('btn-auction-close').onclick = ()=>{ closeModal('modal-auction'); if(_auctionTimerInterval){clearInterval(_auctionTimerInterval);_auctionTimerInterval=null;} };
 
 // ── 세이브 연동 ───────────────────────────────────────────────
 function randCode() {
@@ -2701,7 +2687,6 @@ async function startGame() {
         }
         registerNickname(G.nickname);
         processMailbox();
-        checkAuctionDelivery();
         show('scr-main'); refreshMain(); updateFriendBadge();
         await showAdminButtons();
         if (G.isBlackPotionActive) startBlackPotionTimer();
@@ -2864,197 +2849,6 @@ async function checkAutoClick() {
         }
         // 30초 후 재감지 허용
         setTimeout(() => { _acReported = false; }, 30000);
-    }
-}
-
-// ── 과일 경매 ──────────────────────────────────────────────────
-const AUCTION_POOL = BASE_FRUITS.filter(f => ['전설','신화','불멸'].includes(f.rarity) && f.rate > 0);
-let _auctionTimerInterval = null;
-const AUCTION_DURATION_MS = 24 * 60 * 60 * 1000; // 24시간
-
-async function _deliverAuctionWinner(auction) {
-    if (!auction || !auction.highestBidder || auction.delivered) return;
-    try {
-        await FB.set('auction/current', { ...auction, delivered: true });
-        await FB.push(`mb/${auction.highestBidder}`, {
-            type: 'auction_win', from: '경매장',
-            fruit: auction.fruit, emoji: auction.emoji,
-            bid: auction.highestBid, ts: Date.now()
-        });
-    } catch(e) {}
-}
-
-async function _generateAuction() {
-    const fruit = AUCTION_POOL[Math.floor(Math.random() * AUCTION_POOL.length)];
-    const startPrice = (RARITY[fruit.rarity] || {}).startPrice || fruit.price;
-    const a = {
-        fruit: fruit.name, emoji: fruit.emoji, rarity: fruit.rarity,
-        startPrice, highestBid: startPrice,
-        highestBidder: '', highestBidderNick: '없음',
-        endTime: Date.now() + AUCTION_DURATION_MS,
-        delivered: false
-    };
-    await FB.set('auction/current', a);
-    return a;
-}
-
-// 로그인 시 호출 — 모달 안 열어도 낙찰 보상 지급
-async function checkAuctionDelivery() {
-    if (!FB) return;
-    try {
-        const a = await FB.get('auction/current');
-        if (a && Date.now() > a.endTime && !a.delivered && a.highestBidder) {
-            await _deliverAuctionWinner(a);
-        }
-    } catch(e) {}
-}
-
-async function loadAndRenderAuction() {
-    const el = $('auction-content');
-    if (!el) return;
-    el.innerHTML = '<div style="color:#555;text-align:center;padding:20px">불러오는 중...</div>';
-    if (_auctionTimerInterval) { clearInterval(_auctionTimerInterval); _auctionTimerInterval = null; }
-    if (!FB) { el.innerHTML = '<div style="color:#888;text-align:center;padding:20px">Firebase 연결 필요</div>'; return; }
-
-    let auction = await FB.get('auction/current');
-
-    // 경매가 없거나 종료됐으면 → 낙찰 처리 후 새 경매 생성
-    if (!auction || Date.now() > auction.endTime) {
-        if (auction && !auction.delivered && auction.highestBidder) {
-            await _deliverAuctionWinner(auction);
-        }
-        auction = await _generateAuction();
-    }
-
-    _renderAuctionUI(auction);
-}
-
-function _renderAuctionUI(auction) {
-    const el = $('auction-content');
-    if (!el) return;
-    const ri = RARITY[auction.rarity] || { color: '#fff' };
-    const remaining = Math.max(0, auction.endTime - Date.now());
-    const ended = Date.now() > auction.endTime;
-    const isLeading = G.nickname && auction.highestBidderNick === G.nickname;
-    const noOneBid = !auction.highestBidder;
-
-    const fmtMs = ms => {
-        if (ms <= 0) return '경매 종료';
-        const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000), s = Math.floor((ms%60000)/1000);
-        return h > 0 ? `${h}시간 ${m}분 ${s}초` : `${m}분 ${s}초`;
-    };
-
-    let bidArea = '';
-    if (ended) {
-        bidArea = `<div style="background:#1a0808;border:1px solid #ff4444;border-radius:8px;padding:12px;text-align:center">
-            <div style="color:#ff4444;font-size:13px;font-weight:bold;margin-bottom:4px">⏰ 경매 종료</div>
-            <div style="color:#aaa;font-size:12px">${noOneBid ? '입찰자 없음 — 낙찰 없음' : `🏆 낙찰자: ${auction.highestBidderNick} (${auction.highestBid.toLocaleString()}G)`}</div>
-        </div>`;
-    } else if (isLeading) {
-        bidArea = `<div style="background:#0a1f0a;border:1px solid #00cc00;border-radius:8px;padding:12px;text-align:center;color:#00cc00;font-size:13px">🏆 현재 최고 입찰자입니다!</div>`;
-    } else {
-        const minBid = auction.highestBid + 1;
-        bidArea = `<div>
-            <div style="font-size:12px;color:#888;margin-bottom:6px">최소 입찰가: ${minBid.toLocaleString()} G &nbsp;·&nbsp; 내 골드: ${G.gold.toLocaleString()} G</div>
-            <div style="display:flex;gap:8px">
-                <input id="auction-bid-input" type="number" min="${minBid}" value="${minBid}"
-                    style="flex:1;padding:10px;background:#111;color:#fff;border:1px solid #555;border-radius:8px;font-size:14px;font-family:inherit"/>
-                <button class="btn" id="btn-auction-bid"
-                    style="background:#7a3a00;color:#ffd700;border:1px solid #aa6600;font-size:14px;padding:10px 16px;border-radius:8px;white-space:nowrap">💰 입찰</button>
-            </div>
-        </div>`;
-    }
-
-    el.innerHTML = `
-        <div style="text-align:center;margin-bottom:16px">
-            <div style="font-size:60px;margin-bottom:6px">${auction.emoji}</div>
-            <div style="font-size:18px;font-weight:bold;color:${ri.color}">${auction.fruit}</div>
-            <div style="font-size:11px;color:${ri.color};opacity:.6;margin-top:2px">${auction.rarity} 등급</div>
-        </div>
-        <div style="background:#1a1a1a;border-radius:10px;padding:14px;margin-bottom:14px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                <span style="color:#888;font-size:13px">시작 가격</span>
-                <span style="color:#aaa;font-size:13px">${auction.startPrice.toLocaleString()} G</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                <span style="color:#888;font-size:13px">현재 최고 입찰</span>
-                <span style="color:#ffd700;font-weight:bold;font-size:15px">${noOneBid ? '없음' : auction.highestBid.toLocaleString()+' G'}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                <span style="color:#888;font-size:13px">최고 입찰자</span>
-                <span style="color:${isLeading?'#00cc00':'#fff'};font-size:13px;font-weight:${isLeading?'bold':'normal'}">${auction.highestBidderNick||'없음'}${isLeading?' ✅':''}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between">
-                <span style="color:#888;font-size:13px">남은 시간</span>
-                <span style="color:#ff8800;font-size:13px" id="auction-timer">${fmtMs(remaining)}</span>
-            </div>
-        </div>
-        ${bidArea}
-    `;
-
-    const bidBtn = $('btn-auction-bid');
-    if (bidBtn) bidBtn.onclick = async () => { await _placeBid(); };
-
-    if (!ended) {
-        _auctionTimerInterval = setInterval(() => {
-            const t = $('auction-timer');
-            if (!t) { clearInterval(_auctionTimerInterval); return; }
-            const rem = Math.max(0, auction.endTime - Date.now());
-            if (rem <= 0) { clearInterval(_auctionTimerInterval); loadAndRenderAuction(); return; }
-            const h = Math.floor(rem/3600000), m = Math.floor((rem%3600000)/60000), s = Math.floor((rem%60000)/1000);
-            t.textContent = h > 0 ? `${h}시간 ${m}분 ${s}초` : `${m}분 ${s}초`;
-        }, 1000);
-    }
-}
-
-async function _placeBid() {
-    const amountEl = $('auction-bid-input');
-    const amount = amountEl ? (parseInt(amountEl.value) || 0) : 0;
-    if (!G.nickname) return alert('로그인이 필요합니다.');
-    if (amount <= 0) return alert('유효한 입찰 금액을 입력하세요.');
-
-    const btn = $('btn-auction-bid');
-    if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
-
-    try {
-        const latest = await FB.get('auction/current');
-        if (!latest) { alert('경매 정보를 불러올 수 없습니다.'); loadAndRenderAuction(); return; }
-        if (Date.now() > latest.endTime) {
-            alert('경매가 방금 종료되었습니다. 새 경매를 불러옵니다.');
-            loadAndRenderAuction(); return;
-        }
-        if (latest.highestBidderNick === G.nickname) { alert('이미 최고 입찰자입니다.'); loadAndRenderAuction(); return; }
-        if (amount <= latest.highestBid) {
-            alert(`이미 ${latest.highestBid.toLocaleString()}G 입찰이 들어왔습니다.\n${(latest.highestBid+1).toLocaleString()}G 이상 입찰하세요.`);
-            loadAndRenderAuction(); return;
-        }
-        if (G.gold < amount) { alert(`골드가 부족합니다. (보유: ${G.gold.toLocaleString()}G)`); if (btn){btn.disabled=false;btn.textContent='💰 입찰';} return; }
-
-        // 이전 최고 입찰자에게 환불
-        if (latest.highestBidder && latest.highestBidder !== encN(G.nickname)) {
-            try {
-                await FB.push(`mb/${latest.highestBidder}`, {
-                    type: 'auction_refund', from: '경매장',
-                    gold: latest.highestBid, fruit: latest.fruit, emoji: latest.emoji, ts: Date.now()
-                });
-            } catch(e) {}
-        }
-
-        G.gold -= amount;
-        G.save();
-
-        await FB.set('auction/current', {
-            ...latest,
-            highestBid: amount,
-            highestBidder: encN(G.nickname),
-            highestBidderNick: G.nickname
-        });
-
-        toast(`💰 ${amount.toLocaleString()}G 입찰 완료!`);
-        loadAndRenderAuction();
-    } catch(e) {
-        alert('입찰 중 오류가 발생했습니다. 다시 시도하세요.');
-        if (btn) { btn.disabled = false; btn.textContent = '💰 입찰'; }
     }
 }
 
