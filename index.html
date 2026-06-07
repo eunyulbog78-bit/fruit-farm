@@ -2995,13 +2995,18 @@ const RANK_MEDALS = ['🥇','🥈','🥉'];
 async function renderRanking() {
     const list = $('ranking-list');
     list.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:20px">불러오는 중...</div>';
-    const data = FB ? await FB.get('ranking') : null;
+    const [data, adminData] = await Promise.all([
+        FB ? FB.get('ranking') : null,
+        FB ? FB.get('admins') : null
+    ]);
     if (!data || Object.keys(data).length === 0) {
         list.innerHTML = '<div style="color:#444;font-size:13px;text-align:center;padding:20px">랭킹 데이터 없음</div>';
         return;
     }
+    const adminNicks = new Set(['관리자']);
+    if (adminData) Object.values(adminData).forEach(a => a.nick && adminNicks.add(a.nick));
     const sorted = Object.values(data)
-        .filter(d => d.nick && typeof d.gold === 'number')
+        .filter(d => d.nick && typeof d.gold === 'number' && !adminNicks.has(d.nick))
         .sort((a, b) => b.gold - a.gold)
         .slice(0, 30);
     list.innerHTML = '';
@@ -3010,20 +3015,15 @@ async function renderRanking() {
         const medal = RANK_MEDALS[i] || `${rank}`;
         const isMe = entry.nick === G.nickname;
         const row = document.createElement('div');
-        row.style.cssText = `display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;
+        row.style.cssText = `display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
             background:${isMe ? '#1a2a1a' : '#141414'};
-            border:1px solid ${isMe ? '#00cc00' : rank<=3 ? '#554400' : '#222'};
-            transition:background .15s`;
-        row.onmouseenter = () => { row.style.background = isMe ? '#1f351f' : '#1e1e1e'; };
-        row.onmouseleave = () => { row.style.background = isMe ? '#1a2a1a' : '#141414'; };
+            border:1px solid ${isMe ? '#00cc00' : rank<=3 ? '#554400' : '#222'}`;
         row.innerHTML = `
             <div style="font-size:${rank<=3?'22px':'15px'};min-width:32px;text-align:center;font-weight:bold;color:${rank<=3?'#ffd700':'#555'}">${medal}</div>
             <div style="flex:1;min-width:0">
                 <div style="font-size:14px;font-weight:bold;color:${isMe?'#00cc00':'#eee'}">${entry.nick}${isMe?' (나)':''}</div>
                 <div style="font-size:12px;color:#ffd700">💰 ${entry.gold.toLocaleString()} G</div>
-            </div>
-            <div style="color:#555;font-size:12px">🎒</div>`;
-        row.onclick = () => showRankInventory(entry.nick);
+            </div>`;
         list.appendChild(row);
     });
 }
