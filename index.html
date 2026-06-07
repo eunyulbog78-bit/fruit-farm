@@ -657,6 +657,10 @@ body { background:#000 !important; }
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
             <span id="lbl-nick" style="color:#0f0;font-weight:bold;font-size:15px"></span>
             <div style="display:flex;gap:6px;align-items:center">
+                <button class="btn" id="btn-ranking"
+                    style="background:none;border:1px solid #555;border-radius:8px;color:#ffd700;font-size:13px;padding:6px 12px">
+                    🏆 랭킹
+                </button>
                 <button class="btn" id="btn-sync"
                     style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:13px;padding:6px 12px">
                     ☁️ 연동
@@ -704,6 +708,25 @@ body { background:#000 !important; }
 <div id="drop-backdrop"></div>
 <div id="durian-popup"></div>
 <div id="drop-notif"></div>
+
+<!-- 랭킹 모달 -->
+<div class="modal" id="modal-ranking">
+    <div class="modal-box">
+        <h2 style="color:#ffd700;margin-bottom:4px">🏆 골드 랭킹</h2>
+        <p style="color:#555;font-size:12px;margin-bottom:14px">TOP 30</p>
+        <div id="ranking-list" style="max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+        <button class="btn" id="btn-ranking-close" style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
+    </div>
+</div>
+
+<!-- 랭킹 플레이어 인벤토리 모달 -->
+<div class="modal" id="modal-rank-inv">
+    <div class="modal-box">
+        <h2 id="rank-inv-title" style="color:#ffd700;margin-bottom:14px"></h2>
+        <div id="rank-inv-list" style="max-height:380px;overflow-y:auto"></div>
+        <button class="btn" id="btn-rank-inv-close" style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
+    </div>
+</div>
 
 <!-- 인벤토리 모달 -->
 <div class="modal" id="modal-inv">
@@ -900,7 +923,7 @@ body { background:#000 !important; }
 // 3. 데이터베이스 URL 복사 후 아래에 붙여넣기
 const FIREBASE_URL = 'https://fruit-farm-f24fe-default-rtdb.firebaseio.com';
 const SAVE_VERSION = 2; // 가격/확률 변경 시 이 숫자를 올리면 기존 유저 가격 자동 초기화
-const APP_VERSION = '1.1'; // 업데이트 배포 시 이 숫자를 올리면 모든 기기에서 강제 새로고침
+const APP_VERSION = '1.2'; // 업데이트 배포 시 이 숫자를 올리면 모든 기기에서 강제 새로고침
 (()=>{
     const stored = localStorage.getItem('fruitFarm4_appVer');
     if (stored !== APP_VERSION) {
@@ -1055,7 +1078,10 @@ const G = {
             friends:this.friends, pendingRequests:this.pendingRequests, tradeOffers:this.tradeOffers,
             saveVersion: SAVE_VERSION,
         }));
-        if (FB && this.nickname) FB.set(`inv/${encN(this.nickname)}`, this.inventory);
+        if (FB && this.nickname) {
+            FB.set(`inv/${encN(this.nickname)}`, this.inventory);
+            FB.set(`ranking/${encN(this.nickname)}`, { nick: this.nickname, gold: this.gold, ts: Date.now() });
+        }
     },
     load() {
         const d = JSON.parse(localStorage.getItem('fruitFarm4') || 'null');
@@ -2661,6 +2687,8 @@ async function startGame() {
         show('scr-main'); refreshMain(); updateFriendBadge();
         await showAdminButtons();
         if (G.isBlackPotionActive) startBlackPotionTimer();
+        // 접속 시 즉시 랭킹 데이터 업로드 (기존 유저 포함)
+        if (FB) FB.set(`ranking/${encN(G.nickname)}`, { nick: G.nickname, gold: G.gold, ts: Date.now() });
     } else {
         show('scr-start');
     }
@@ -2960,6 +2988,78 @@ $('btn-revoke-do').onclick = async () => {
     alert(`'${nick}' 의 관리자 권한을 해제했습니다`);
     renderAdminGrantList();
 };
+
+// ── 골드 랭킹 ─────────────────────────────────────────────────
+const RANK_MEDALS = ['🥇','🥈','🥉'];
+
+async function renderRanking() {
+    const list = $('ranking-list');
+    list.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:20px">불러오는 중...</div>';
+    const data = FB ? await FB.get('ranking') : null;
+    if (!data || Object.keys(data).length === 0) {
+        list.innerHTML = '<div style="color:#444;font-size:13px;text-align:center;padding:20px">랭킹 데이터 없음</div>';
+        return;
+    }
+    const sorted = Object.values(data)
+        .filter(d => d.nick && typeof d.gold === 'number')
+        .sort((a, b) => b.gold - a.gold)
+        .slice(0, 30);
+    list.innerHTML = '';
+    sorted.forEach((entry, i) => {
+        const rank = i + 1;
+        const medal = RANK_MEDALS[i] || `${rank}`;
+        const isMe = entry.nick === G.nickname;
+        const row = document.createElement('div');
+        row.style.cssText = `display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;
+            background:${isMe ? '#1a2a1a' : '#141414'};
+            border:1px solid ${isMe ? '#00cc00' : rank<=3 ? '#554400' : '#222'};
+            transition:background .15s`;
+        row.onmouseenter = () => { row.style.background = isMe ? '#1f351f' : '#1e1e1e'; };
+        row.onmouseleave = () => { row.style.background = isMe ? '#1a2a1a' : '#141414'; };
+        row.innerHTML = `
+            <div style="font-size:${rank<=3?'22px':'15px'};min-width:32px;text-align:center;font-weight:bold;color:${rank<=3?'#ffd700':'#555'}">${medal}</div>
+            <div style="flex:1;min-width:0">
+                <div style="font-size:14px;font-weight:bold;color:${isMe?'#00cc00':'#eee'}">${entry.nick}${isMe?' (나)':''}</div>
+                <div style="font-size:12px;color:#ffd700">💰 ${entry.gold.toLocaleString()} G</div>
+            </div>
+            <div style="color:#555;font-size:12px">🎒</div>`;
+        row.onclick = () => showRankInventory(entry.nick);
+        list.appendChild(row);
+    });
+}
+
+async function showRankInventory(nick) {
+    $('rank-inv-title').textContent = `🎒 ${nick}의 인벤토리`;
+    const invEl = $('rank-inv-list');
+    invEl.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:20px">불러오는 중...</div>';
+    openModal('modal-rank-inv');
+    const inv = FB ? await FB.get(`inv/${encN(nick)}`) : null;
+    if (!inv) { invEl.innerHTML = '<div style="color:#444;font-size:13px;text-align:center;padding:20px">인벤토리 정보 없음</div>'; return; }
+    const entries = Object.entries(inv).filter(([,c]) => c > 0).sort((a,b) => (G.prices[b[0]]||0)*b[1] - (G.prices[a[0]]||0)*a[1]);
+    if (entries.length === 0) { invEl.innerHTML = '<div style="color:#444;font-size:13px;text-align:center;padding:20px">인벤토리가 비어있습니다</div>'; return; }
+    invEl.innerHTML = '';
+    for (const [fruit, count] of entries) {
+        const price = G.prices[fruit] || 0;
+        const rarityInfo = getFruitRarity(G.base(fruit));
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 10px;background:#141414;border:1px solid #222;border-radius:8px;margin-bottom:6px';
+        row.innerHTML = `
+            <span style="font-size:22px">${G.emoji[fruit]||'❓'}</span>
+            <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:bold;color:${rarityInfo?.color||'#eee'}">${fruit}</div>
+                <div style="font-size:11px;color:#777">개당 ${price.toLocaleString()}G</div>
+            </div>
+            <div style="text-align:right">
+                <div style="color:#fff;font-size:13px;font-weight:bold">×${count.toLocaleString()}</div>
+                <div style="color:#ffd700;font-size:11px">${(price*count).toLocaleString()}G</div>
+            </div>`;
+        invEl.appendChild(row);
+    }
+}
+
+$('btn-ranking').onclick = () => { renderRanking(); openModal('modal-ranking'); };
+$('btn-ranking-close').onclick = () => closeModal('modal-ranking');
+$('btn-rank-inv-close').onclick = () => closeModal('modal-rank-inv');
 
 // ── 앱 숨김/종료 시 남은 포션 시간 저장 (꺼진 동안 시간 멈춤) ─
 document.addEventListener('visibilitychange', () => {
