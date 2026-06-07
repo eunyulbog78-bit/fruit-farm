@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>🍎 과일 농장</title>
 
 <!-- Google tag (gtag.js) -->
@@ -662,9 +665,7 @@ body { background:#000 !important; }
                     style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:20px;padding:6px 12px;position:relative">
                     👥
                 </button>
-                <button class="btn" id="btn-ban-open" style="display:none;background:#550000;border:1px solid #ff4444;border-radius:8px;color:#ff4444;font-size:13px;padding:6px 10px">🚫 정지 관리</button>
-                <button class="btn" id="btn-autoclicker-open" style="display:none;background:#001e33;border:1px solid #00aaff;border-radius:8px;color:#00aaff;font-size:13px;padding:6px 10px">🤖 의심자</button>
-                <button class="btn" id="btn-admin-grant-open" style="display:none;background:#332200;border:1px solid #ffd700;border-radius:8px;color:#ffd700;font-size:13px;padding:6px 10px">👑 권한</button>
+                <button class="btn" id="btn-admin-menu-open" style="display:none;background:#1a1a2e;border:1px solid #7c7cff;border-radius:8px;color:#aaaaff;font-size:13px;padding:6px 12px">🛡️ 관리자</button>
                 <button class="btn" id="btn-profile" style="display:none">👤</button>
             </div>
         </div>
@@ -844,6 +845,30 @@ body { background:#000 !important; }
     </div>
 </div>
 
+<!-- 블랙 포션 수확 결과 모달 -->
+<div class="modal" id="modal-black-result">
+    <div class="modal-box">
+        <h2 style="color:#cc99ff;margin-bottom:4px">🖤 블랙 포션 종료</h2>
+        <p style="color:#666;font-size:12px;margin-bottom:14px">자동 수확 결과</p>
+        <div id="black-result-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+        <div id="black-result-total" style="margin-top:12px;text-align:right;color:#ffd700;font-size:15px;font-weight:bold"></div>
+        <button class="btn" id="btn-black-result-close" style="background:#333;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">확인</button>
+    </div>
+</div>
+
+<!-- 관리자 메뉴 모달 -->
+<div class="modal" id="modal-admin-menu">
+    <div class="modal-box" style="max-width:300px">
+        <h2 style="color:#aaaaff;margin-bottom:16px">🛡️ 관리자 메뉴</h2>
+        <div style="display:flex;flex-direction:column;gap:10px">
+            <button class="btn" id="btn-menu-autoclicker" style="background:#001e33;border:1px solid #00aaff;color:#00aaff;font-size:15px;padding:14px 0;border-radius:10px">🤖 오토클릭 의심자</button>
+            <button class="btn" id="btn-menu-ban" style="background:#2a0000;border:1px solid #ff4444;color:#ff4444;font-size:15px;padding:14px 0;border-radius:10px">🚫 정지 관리</button>
+            <button class="btn" id="btn-menu-grant" style="display:none;background:#1a1200;border:1px solid #ffd700;color:#ffd700;font-size:15px;padding:14px 0;border-radius:10px">👑 권한 관리</button>
+        </div>
+        <button class="btn" id="btn-admin-menu-close" style="background:#333;color:#aaa;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
+    </div>
+</div>
+
 <!-- 관리자 권한 부여 모달 (닉네임 "관리자" 전용) -->
 <div class="modal" id="modal-admin-grant">
     <div class="modal-box">
@@ -875,6 +900,14 @@ body { background:#000 !important; }
 // 3. 데이터베이스 URL 복사 후 아래에 붙여넣기
 const FIREBASE_URL = 'https://fruit-farm-f24fe-default-rtdb.firebaseio.com';
 const SAVE_VERSION = 2; // 가격/확률 변경 시 이 숫자를 올리면 기존 유저 가격 자동 초기화
+const APP_VERSION = '1.1'; // 업데이트 배포 시 이 숫자를 올리면 모든 기기에서 강제 새로고침
+(()=>{
+    const stored = localStorage.getItem('fruitFarm4_appVer');
+    if (stored !== APP_VERSION) {
+        localStorage.setItem('fruitFarm4_appVer', APP_VERSION);
+        if (stored !== null) location.reload(true); // 이전 버전이 있었으면 강제 새로고침
+    }
+})();
 // ══════════════════════════════════════════════════════════════
 
 // ── 과일 정의 (새 과일은 여기에만 추가) ──────────────────────
@@ -938,7 +971,7 @@ const PURPLE_POTION_PRICE = 50000;
 const BLACK_POTION_PRICE  = 100000;
 const BLUE_POTION_MS      = 10 * 60 * 1000;
 const PURPLE_POTION_MS    = 20 * 60 * 1000;
-const BLACK_POTION_MS     = 30 * 60 * 1000;
+const BLACK_POTION_MS     = 10 * 60 * 1000;
 
 // 등급 설정 (startPrice: 해당 등급 과일의 기본 시작 가격)
 const RARITY = {
@@ -993,6 +1026,7 @@ const G = {
     juicePurchased:false,
     bluePotionCount:0, redPotionCount:0, purplePotionCount:0, blackPotionCount:0,
     bluePotionUntil:0, redPotionPending:0, purplePotionUntil:0, blackPotionUntil:0,
+    blackPotionBoughtToday:0, blackPotionLastBuyDate:'',
     ownedTitles:[], equippedTitle:null,
     lastDate:new Date().toDateString(),
     emoji:{...cat.emoji}, prices:{...cat.prices},
@@ -1008,6 +1042,10 @@ const G = {
             juicePurchased:this.juicePurchased,
             bluePotionCount:this.bluePotionCount, redPotionCount:this.redPotionCount, purplePotionCount:this.purplePotionCount, blackPotionCount:this.blackPotionCount,
             bluePotionUntil:this.bluePotionUntil, redPotionPending:this.redPotionPending, purplePotionUntil:this.purplePotionUntil, blackPotionUntil:this.blackPotionUntil,
+            bluePotionRemaining:Math.max(0, this.bluePotionUntil - Date.now()),
+            purplePotionRemaining:Math.max(0, this.purplePotionUntil - Date.now()),
+            blackPotionRemaining:Math.max(0, this.blackPotionUntil - Date.now()),
+            blackPotionBoughtToday:this.blackPotionBoughtToday, blackPotionLastBuyDate:this.blackPotionLastBuyDate,
             ownedTitles:this.ownedTitles, equippedTitle:this.equippedTitle,
             lastDate:this.lastDate,
             priceRatios: Object.fromEntries(BASE_FRUITS.filter(f=>f.price>0).map(f=>[f.name, this.prices[f.name]/f.price])),
@@ -1047,10 +1085,13 @@ const G = {
         this.redPotionCount = d.redPotionCount || 0;
         this.purplePotionCount = d.purplePotionCount || 0;
         this.blackPotionCount = d.blackPotionCount || 0;
-        this.bluePotionUntil = d.bluePotionUntil || 0;
+        this.blackPotionBoughtToday = d.blackPotionBoughtToday || 0;
+        this.blackPotionLastBuyDate = d.blackPotionLastBuyDate || '';
+        // 남은 시간(Remaining)이 있으면 지금 시점부터 이어서 계산 (꺼진 동안 시간 멈춤)
+        this.bluePotionUntil   = d.bluePotionRemaining   > 0 ? Date.now() + d.bluePotionRemaining   : 0;
+        this.purplePotionUntil = d.purplePotionRemaining > 0 ? Date.now() + d.purplePotionRemaining : 0;
+        this.blackPotionUntil  = d.blackPotionRemaining  > 0 ? Date.now() + d.blackPotionRemaining  : 0;
         this.redPotionPending = d.redPotionPending || 0;
-        this.purplePotionUntil = d.purplePotionUntil || 0;
-        this.blackPotionUntil = d.blackPotionUntil || 0;
     },
     processPendingOrders() {
         const now = Date.now();
@@ -1136,10 +1177,18 @@ const G = {
         return true;
     },
     buyBlackPotion(n=1) {
+        const today = new Date().toDateString();
+        if (this.blackPotionLastBuyDate !== today) {
+            this.blackPotionBoughtToday = 0;
+            this.blackPotionLastBuyDate = today;
+        }
+        const remaining = 2 - this.blackPotionBoughtToday;
+        if (n <= 0 || n > remaining) { alert(`오늘 블랙 포션은 ${remaining}개만 더 구매할 수 있습니다`); return false; }
         const cost = BLACK_POTION_PRICE * n;
-        if (n <= 0 || this.gold < cost) return false;
+        if (this.gold < cost) return false;
         this.gold -= cost;
         this.blackPotionCount += n;
+        this.blackPotionBoughtToday += n;
         return true;
     },
     useBlackPotion(n=1) {
@@ -2405,7 +2454,7 @@ function renderShop() {
         },
         {
             id:'black-potion', icon:'🖤', name:'블랙 포션',
-            desc:`30분 동안 자동 수확 (20클릭/초) · 과일 자동 인벤토리 수납 · 단가 ${BLACK_POTION_PRICE.toLocaleString()}G (${blackRemainText})`,
+            desc:(()=>{ const today=new Date().toDateString(); const bought=(G.blackPotionLastBuyDate===today?G.blackPotionBoughtToday:0); return `10분 동안 자동 수확 (15클릭/초) · 과일 자동 인벤토리 수납 · 단가 ${BLACK_POTION_PRICE.toLocaleString()}G · 오늘 ${2-bought}회 구매 가능 (${blackRemainText})`; })(),
             price:BLACK_POTION_PRICE,
             owned: G.blackPotionCount > 0,
             active: G.isBlackPotionActive,
@@ -2675,7 +2724,6 @@ async function renderBanList() {
     }
 }
 
-$('btn-ban-open').onclick = () => { renderBanList(); openModal('modal-ban'); };
 $('btn-ban-close').onclick = () => closeModal('modal-ban');
 $('btn-ban-do').onclick = async () => {
     const nick = $('ban-nick-input').value.trim();
@@ -2695,25 +2743,55 @@ $('btn-ban-undo').onclick = async () => {
 
 // ── 블랙 포션 오토클릭 타이머 ─────────────────────────────────
 let _blackPotionTimer = null;
+let _blackPotionLoot = {}; // 세션 동안 수확한 과일 누적
 
 function startBlackPotionTimer() {
     if (_blackPotionTimer) return; // 이미 실행 중
+    _blackPotionLoot = {};
     _blackPotionTimer = setInterval(() => {
         if (!G.isBlackPotionActive) {
             clearInterval(_blackPotionTimer);
             _blackPotionTimer = null;
             refreshMain();
+            showBlackPotionResult();
             return;
         }
-        // 20클릭/초 → 50ms마다 호출되므로 1틱에 1클릭
         G.registerClick();
         const { fruit, count, upgraded } = G.tryGetFruit();
         if (fruit) {
-            G.addFruit(fruit, count); // 팝업 없이 바로 인벤토리
+            G.addFruit(fruit, count);
+            _blackPotionLoot[fruit] = (_blackPotionLoot[fruit] || 0) + count;
         }
         G.save();
         refreshMain();
-    }, 50); // 1000ms / 20 = 50ms
+    }, 67); // 1000ms / 15 ≈ 67ms
+}
+
+function showBlackPotionResult() {
+    const list = $('black-result-list');
+    const total = $('black-result-total');
+    list.innerHTML = '';
+    const entries = Object.entries(_blackPotionLoot);
+    if (entries.length === 0) {
+        list.innerHTML = '<div style="color:#555;text-align:center;padding:16px;font-size:13px">수확된 과일이 없습니다</div>';
+        total.textContent = '';
+    } else {
+        let totalGold = 0;
+        for (const [fruit, count] of entries.sort((a,b) => (G.prices[b[0]]||0)*b[1] - (G.prices[a[0]]||0)*a[1])) {
+            const price = G.prices[fruit] || 0;
+            const value = price * count;
+            totalGold += value;
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:8px 12px';
+            row.innerHTML = `
+                <span style="font-size:14px">${G.emoji[fruit]||''} ${fruit}</span>
+                <span style="color:#aaa;font-size:13px">×${count.toLocaleString()}</span>
+                <span style="color:#ffd700;font-size:13px">${value.toLocaleString()}G</span>`;
+            list.appendChild(row);
+        }
+        total.textContent = `총 가치: ${totalGold.toLocaleString()} G`;
+    }
+    openModal('modal-black-result');
 }
 
 // ── 오토클릭 감지 ─────────────────────────────────────────────
@@ -2787,11 +2865,25 @@ async function renderAutoClickerList() {
 }
 
 let _acPollTimer = null;
-$('btn-autoclicker-open').onclick = () => {
+$('btn-admin-menu-open').onclick = () => openModal('modal-admin-menu');
+$('btn-admin-menu-close').onclick = () => closeModal('modal-admin-menu');
+$('btn-menu-autoclicker').onclick = () => {
+    closeModal('modal-admin-menu');
     renderAutoClickerList();
     openModal('modal-autoclicker');
     _acPollTimer = setInterval(renderAutoClickerList, 5000);
 };
+$('btn-menu-ban').onclick = () => {
+    closeModal('modal-admin-menu');
+    renderBanList();
+    openModal('modal-ban');
+};
+$('btn-menu-grant').onclick = () => {
+    closeModal('modal-admin-menu');
+    renderAdminGrantList();
+    openModal('modal-admin-grant');
+};
+$('btn-black-result-close').onclick = () => closeModal('modal-black-result');
 $('btn-autoclicker-close').onclick = () => {
     closeModal('modal-autoclicker');
     clearInterval(_acPollTimer);
@@ -2815,11 +2907,10 @@ async function hasAdminRole(nick) {
 async function showAdminButtons() {
     const admin = await hasAdminRole(G.nickname);
     if (admin) {
-        $('btn-ban-open').style.display = '';
-        $('btn-autoclicker-open').style.display = '';
+        $('btn-admin-menu-open').style.display = '';
     }
     if (G.nickname === '관리자') {
-        $('btn-admin-grant-open').style.display = '';
+        $('btn-menu-grant').style.display = '';
     }
 }
 
@@ -2851,7 +2942,6 @@ async function renderAdminGrantList() {
     }
 }
 
-$('btn-admin-grant-open').onclick = () => { renderAdminGrantList(); openModal('modal-admin-grant'); };
 $('btn-admin-grant-close').onclick = () => closeModal('modal-admin-grant');
 $('btn-grant-do').onclick = async () => {
     const nick = $('grant-nick-input').value.trim();
@@ -2870,6 +2960,26 @@ $('btn-revoke-do').onclick = async () => {
     alert(`'${nick}' 의 관리자 권한을 해제했습니다`);
     renderAdminGrantList();
 };
+
+// ── 앱 숨김/종료 시 남은 포션 시간 저장 (꺼진 동안 시간 멈춤) ─
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && G.nickname) {
+        G.save(); // Remaining 포함해서 저장
+    } else if (!document.hidden && G.nickname) {
+        // 다시 켜질 때: Remaining 기반으로 Until 재계산
+        const saved = JSON.parse(localStorage.getItem('fruitFarm4') || 'null');
+        if (saved) {
+            if (saved.bluePotionRemaining   > 0) G.bluePotionUntil   = Date.now() + saved.bluePotionRemaining;
+            if (saved.purplePotionRemaining > 0) G.purplePotionUntil = Date.now() + saved.purplePotionRemaining;
+            if (saved.blackPotionRemaining  > 0) {
+                G.blackPotionUntil = Date.now() + saved.blackPotionRemaining;
+                startBlackPotionTimer();
+            }
+        }
+        refreshMain();
+    }
+});
+window.addEventListener('beforeunload', () => { if (G.nickname) G.save(); });
 
 startGame();
 </script>
