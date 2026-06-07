@@ -935,8 +935,10 @@ const TITLE_ELON_PRICE  = 100000000;
 const BLUE_POTION_PRICE   = 25000;
 const RED_POTION_PRICE    = 25000;
 const PURPLE_POTION_PRICE = 50000;
+const BLACK_POTION_PRICE  = 100000;
 const BLUE_POTION_MS      = 10 * 60 * 1000;
 const PURPLE_POTION_MS    = 20 * 60 * 1000;
+const BLACK_POTION_MS     = 30 * 60 * 1000;
 
 // 등급 설정 (startPrice: 해당 등급 과일의 기본 시작 가격)
 const RARITY = {
@@ -989,8 +991,8 @@ const G = {
     nickname:'', gold:0, day:1, clickCount:0,
     equippedFruit:null, activeBackground:'normal',
     juicePurchased:false,
-    bluePotionCount:0, redPotionCount:0, purplePotionCount:0,
-    bluePotionUntil:0, redPotionPending:0, purplePotionUntil:0,
+    bluePotionCount:0, redPotionCount:0, purplePotionCount:0, blackPotionCount:0,
+    bluePotionUntil:0, redPotionPending:0, purplePotionUntil:0, blackPotionUntil:0,
     ownedTitles:[], equippedTitle:null,
     lastDate:new Date().toDateString(),
     emoji:{...cat.emoji}, prices:{...cat.prices},
@@ -1004,8 +1006,8 @@ const G = {
             clickCount:this.clickCount, equippedFruit:this.equippedFruit,
             activeBackground:this.activeBackground,
             juicePurchased:this.juicePurchased,
-            bluePotionCount:this.bluePotionCount, redPotionCount:this.redPotionCount, purplePotionCount:this.purplePotionCount,
-            bluePotionUntil:this.bluePotionUntil, redPotionPending:this.redPotionPending, purplePotionUntil:this.purplePotionUntil,
+            bluePotionCount:this.bluePotionCount, redPotionCount:this.redPotionCount, purplePotionCount:this.purplePotionCount, blackPotionCount:this.blackPotionCount,
+            bluePotionUntil:this.bluePotionUntil, redPotionPending:this.redPotionPending, purplePotionUntil:this.purplePotionUntil, blackPotionUntil:this.blackPotionUntil,
             ownedTitles:this.ownedTitles, equippedTitle:this.equippedTitle,
             lastDate:this.lastDate,
             priceRatios: Object.fromEntries(BASE_FRUITS.filter(f=>f.price>0).map(f=>[f.name, this.prices[f.name]/f.price])),
@@ -1044,9 +1046,11 @@ const G = {
         this.bluePotionCount = d.bluePotionCount || 0;
         this.redPotionCount = d.redPotionCount || 0;
         this.purplePotionCount = d.purplePotionCount || 0;
+        this.blackPotionCount = d.blackPotionCount || 0;
         this.bluePotionUntil = d.bluePotionUntil || 0;
         this.redPotionPending = d.redPotionPending || 0;
         this.purplePotionUntil = d.purplePotionUntil || 0;
+        this.blackPotionUntil = d.blackPotionUntil || 0;
     },
     processPendingOrders() {
         const now = Date.now();
@@ -1084,6 +1088,7 @@ const G = {
     isMut(fruit)  { return this.isGold(fruit) || this.isDia(fruit); },
     get isBluePotionActive()   { return Date.now() < this.bluePotionUntil; },
     get isPurplePotionActive() { return Date.now() < this.purplePotionUntil; },
+    get isBlackPotionActive()  { return Date.now() < this.blackPotionUntil; },
     get eqBase() { return this.base(this.equippedFruit); },
 
     registerClick() { this.clickCount += this.eqBase==='코코넛' ? 2 : 1; },
@@ -1128,6 +1133,20 @@ const G = {
         if (n <= 0 || this.redPotionCount < n) return false;
         this.redPotionCount -= n;
         this.redPotionPending = (this.redPotionPending || 0) + n;
+        return true;
+    },
+    buyBlackPotion(n=1) {
+        const cost = BLACK_POTION_PRICE * n;
+        if (n <= 0 || this.gold < cost) return false;
+        this.gold -= cost;
+        this.blackPotionCount += n;
+        return true;
+    },
+    useBlackPotion(n=1) {
+        if (n <= 0 || this.blackPotionCount < n) return false;
+        this.blackPotionCount -= n;
+        const base = Math.max(this.blackPotionUntil, Date.now());
+        this.blackPotionUntil = base + BLACK_POTION_MS * n;
         return true;
     },
 
@@ -1831,10 +1850,12 @@ function refreshMain() {
 
     const blueRemainSec   = Math.max(0, Math.ceil((G.bluePotionUntil   - Date.now()) / 1000));
     const purpleRemainSec = Math.max(0, Math.ceil((G.purplePotionUntil - Date.now()) / 1000));
+    const blackRemainSec  = Math.max(0, Math.ceil((G.blackPotionUntil  - Date.now()) / 1000));
     const blueText   = G.isBluePotionActive   ? ` | 🔵 블루 포션 ${Math.floor(blueRemainSec / 60)}:${String(blueRemainSec % 60).padStart(2, '0')}` : '';
     const redText    = (G.redPotionPending > 0) ? ` | 🔴 레드 포션 대기 ${G.redPotionPending}회` : '';
     const purpleText = G.isPurplePotionActive  ? ` | 🟣 퍼플 포션 ${Math.floor(purpleRemainSec / 60)}:${String(purpleRemainSec % 60).padStart(2, '0')}` : '';
-    $('lbl-clicks').textContent += `${blueText}${redText}${purpleText}`;
+    const blackText  = G.isBlackPotionActive   ? ` | 🖤 블랙 포션 ${Math.floor(blackRemainSec / 60)}:${String(blackRemainSec % 60).padStart(2, '0')}` : '';
+    $('lbl-clicks').textContent += `${blueText}${redText}${purpleText}${blackText}`;
 
     // 칭호 표시
     const titleEl = $('lbl-title');
@@ -2320,6 +2341,10 @@ function renderShop() {
     const blueRemainText = G.isBluePotionActive
         ? `활성 중 (${Math.floor(blueRemainSec / 60)}:${String(blueRemainSec % 60).padStart(2, '0')} 남음)`
         : '비활성';
+    const blackRemainSec2 = Math.max(0, Math.ceil((G.blackPotionUntil - Date.now()) / 1000));
+    const blackRemainText = G.isBlackPotionActive
+        ? `활성 중 (${Math.floor(blackRemainSec2 / 60)}:${String(blackRemainSec2 % 60).padStart(2, '0')} 남음)`
+        : '비활성';
 
     const items = [
         {
@@ -2376,6 +2401,18 @@ function renderShop() {
             stackable: true,
             onBuy: (n)=>{ if (G.buyPurplePotion(n)) { G.save(); renderShop(); refreshMain(); } },
             onUse: (n)=>{ if (G.usePurplePotion(n)) { G.save(); renderShop(); refreshMain(); } },
+            onOff: null,
+        },
+        {
+            id:'black-potion', icon:'🖤', name:'블랙 포션',
+            desc:`30분 동안 자동 수확 (20클릭/초) · 과일 자동 인벤토리 수납 · 단가 ${BLACK_POTION_PRICE.toLocaleString()}G (${blackRemainText})`,
+            price:BLACK_POTION_PRICE,
+            owned: G.blackPotionCount > 0,
+            active: G.isBlackPotionActive,
+            qty: G.blackPotionCount,
+            stackable: true,
+            onBuy: (n)=>{ if (G.buyBlackPotion(n)) { G.save(); renderShop(); refreshMain(); } },
+            onUse: (n)=>{ if (G.useBlackPotion(n)) { G.save(); startBlackPotionTimer(); renderShop(); refreshMain(); } },
             onOff: null,
         },
     ];
@@ -2573,7 +2610,8 @@ async function startGame() {
         registerNickname(G.nickname);
         processMailbox();
         show('scr-main'); refreshMain(); updateFriendBadge();
-        showAdminButtons();
+        await showAdminButtons();
+        if (G.isBlackPotionActive) startBlackPotionTimer();
     } else {
         show('scr-start');
     }
@@ -2655,6 +2693,29 @@ $('btn-ban-undo').onclick = async () => {
     $('ban-nick-input').value = '';
 };
 
+// ── 블랙 포션 오토클릭 타이머 ─────────────────────────────────
+let _blackPotionTimer = null;
+
+function startBlackPotionTimer() {
+    if (_blackPotionTimer) return; // 이미 실행 중
+    _blackPotionTimer = setInterval(() => {
+        if (!G.isBlackPotionActive) {
+            clearInterval(_blackPotionTimer);
+            _blackPotionTimer = null;
+            refreshMain();
+            return;
+        }
+        // 20클릭/초 → 50ms마다 호출되므로 1틱에 1클릭
+        G.registerClick();
+        const { fruit, count, upgraded } = G.tryGetFruit();
+        if (fruit) {
+            G.addFruit(fruit, count); // 팝업 없이 바로 인벤토리
+        }
+        G.save();
+        refreshMain();
+    }, 50); // 1000ms / 20 = 50ms
+}
+
 // ── 오토클릭 감지 ─────────────────────────────────────────────
 // 1초 슬라이딩 윈도우 안에 30회 초과 시 오토클릭으로 판정
 const _acClickTimes = [];
@@ -2725,8 +2786,17 @@ async function renderAutoClickerList() {
     }
 }
 
-$('btn-autoclicker-open').onclick = () => { renderAutoClickerList(); openModal('modal-autoclicker'); };
-$('btn-autoclicker-close').onclick = () => closeModal('modal-autoclicker');
+let _acPollTimer = null;
+$('btn-autoclicker-open').onclick = () => {
+    renderAutoClickerList();
+    openModal('modal-autoclicker');
+    _acPollTimer = setInterval(renderAutoClickerList, 5000);
+};
+$('btn-autoclicker-close').onclick = () => {
+    closeModal('modal-autoclicker');
+    clearInterval(_acPollTimer);
+    _acPollTimer = null;
+};
 $('btn-autoclicker-refresh').onclick = () => renderAutoClickerList();
 $('btn-autoclicker-clear').onclick = async () => {
     if (!confirm('오토클릭 전체 기록을 삭제할까요?')) return;
