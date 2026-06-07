@@ -2828,27 +2828,25 @@ function showBlackPotionResult() {
 // ── 오토클릭 감지 ─────────────────────────────────────────────
 // 1초 슬라이딩 윈도우 안에 30회 초과 시 오토클릭으로 판정
 const _acClickTimes = [];
-let _acReported = false;
+let _acLastReportTs = 0;
 
 async function checkAutoClick() {
     const now = Date.now();
     _acClickTimes.push(now);
-    // 1초보다 오래된 기록 제거
     while (_acClickTimes.length && _acClickTimes[0] < now - 1000) _acClickTimes.shift();
 
-    if (!_acReported && _acClickTimes.length > 30) {
-        _acReported = true; // 중복 전송 방지
+    // 30클릭 초과 시 5초마다 실제 CPS로 업데이트
+    if (_acClickTimes.length > 30 && now - _acLastReportTs > 5000) {
+        _acLastReportTs = now;
         if (G.nickname && FB) {
             try {
                 await FB.set(`autoclickers/${encN(G.nickname)}`, {
                     nick: G.nickname,
-                    ts: Date.now(),
+                    ts: now,
                     cps: _acClickTimes.length
                 });
             } catch {}
         }
-        // 30초 후 재감지 허용
-        setTimeout(() => { _acReported = false; }, 30000);
     }
 }
 
