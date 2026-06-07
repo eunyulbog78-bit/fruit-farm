@@ -2701,6 +2701,7 @@ async function startGame() {
         }
         registerNickname(G.nickname);
         processMailbox();
+        checkAuctionDelivery();
         show('scr-main'); refreshMain(); updateFriendBadge();
         await showAdminButtons();
         if (G.isBlackPotionActive) startBlackPotionTimer();
@@ -2869,20 +2870,12 @@ async function checkAutoClick() {
 // ── 과일 경매 ──────────────────────────────────────────────────
 const AUCTION_POOL = BASE_FRUITS.filter(f => ['전설','신화','불멸'].includes(f.rarity) && f.rate > 0);
 let _auctionTimerInterval = null;
-
-function _todayStr() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function _endOfTodayTs() {
-    const d = new Date(); d.setHours(23,59,59,999); return d.getTime();
-}
+const AUCTION_DURATION_MS = 24 * 60 * 60 * 1000; // 24시간
 
 async function _deliverAuctionWinner(auction) {
-    if (!auction.highestBidder || auction.delivered) return;
-    // Set delivered flag first to prevent double-delivery
-    await FB.set('auction/current', { ...auction, delivered: true });
+    if (!auction || !auction.highestBidder || auction.delivered) return;
     try {
+        await FB.set('auction/current', { ...auction, delivered: true });
         await FB.push(`mb/${auction.highestBidder}`, {
             type: 'auction_win', from: '경매장',
             fruit: auction.fruit, emoji: auction.emoji,
@@ -2898,10 +2891,22 @@ async function _generateAuction() {
         fruit: fruit.name, emoji: fruit.emoji, rarity: fruit.rarity,
         startPrice, highestBid: startPrice,
         highestBidder: '', highestBidderNick: '없음',
-        endTime: _endOfTodayTs(), day: _todayStr(), delivered: false
+        endTime: Date.now() + AUCTION_DURATION_MS,
+        delivered: false
     };
     await FB.set('auction/current', a);
     return a;
+}
+
+// 로그인 시 호출 — 모달 안 열어도 낙찰 보상 지급
+async function checkAuctionDelivery() {
+    if (!FB) return;
+    try {
+        const a = await FB.get('auction/current');
+        if (a && Date.now() > a.endTime && !a.delivered && a.highestBidder) {
+            await _deliverAuctionWinner(a);
+        }
+    } catch(e) {}
 }
 
 async function loadAndRenderAuction() {
@@ -2909,23 +2914,16 @@ async function loadAndRenderAuction() {
     if (!el) return;
     el.innerHTML = '<div style="color:#555;text-align:center;padding:20px">불러오는 중...</div>';
     if (_auctionTimerInterval) { clearInterval(_auctionTimerInterval); _auctionTimerInterval = null; }
-
     if (!FB) { el.innerHTML = '<div style="color:#888;text-align:center;padding:20px">Firebase 연결 필요</div>'; return; }
 
     let auction = await FB.get('auction/current');
-    const today = _todayStr();
 
-    if (!auction) {
-        auction = await _generateAuction();
-    } else if (auction.day !== today) {
-        if (!auction.delivered && auction.highestBidder) {
+    // 경매가 없거나 종료됐으면 → 낙찰 처리 후 새 경매 생성
+    if (!auction || Date.now() > auction.endTime) {
+        if (auction && !auction.delivered && auction.highestBidder) {
             await _deliverAuctionWinner(auction);
         }
         auction = await _generateAuction();
-    } else if (Date.now() > auction.endTime && !auction.delivered && auction.highestBidder) {
-        await _deliverAuctionWinner(auction);
-        // Re-fetch after delivery
-        auction = await FB.get('auction/current') || auction;
     }
 
     _renderAuctionUI(auction);
@@ -2988,14 +2986,14 @@ function _renderAuctionUI(auction) {
             </div>
             <div style="display:flex;justify-content:space-between">
                 <span style="color:#888;font-size:13px">남은 시간</span>
-                <span style="color:${ended?'#ff4444':'#ff8800'};font-size:13px" id="auction-timer">${fmtMs(remaining)}</span>
+                <span style="color:#ff8800;font-size:13px" id="auction-timer">${fmtMs(remaining)}</span>
             </div>
         </div>
         ${bidArea}
     `;
 
     const bidBtn = $('btn-auction-bid');
-    if (bidBtn) bidBtn.onclick = async () => { await _placeBid(auction); };
+    if (bidBtn) bidBtn.onclick = async () => { await _placeBid(); };
 
     if (!ended) {
         _auctionTimerInterval = setInterval(() => {
@@ -3009,7 +3007,7 @@ function _renderAuctionUI(auction) {
     }
 }
 
-async function _placeBid(cachedAuction) {
+async function _placeBid() {
     const amountEl = $('auction-bid-input');
     const amount = amountEl ? (parseInt(amountEl.value) || 0) : 0;
     if (!G.nickname) return alert('로그인이 필요합니다.');
@@ -3021,7 +3019,10 @@ async function _placeBid(cachedAuction) {
     try {
         const latest = await FB.get('auction/current');
         if (!latest) { alert('경매 정보를 불러올 수 없습니다.'); loadAndRenderAuction(); return; }
-        if (latest.day !== _todayStr() || Date.now() > latest.endTime) { alert('경매가 종료되었습니다.'); loadAndRenderAuction(); return; }
+        if (Date.now() > latest.endTime) {
+            alert('경매가 방금 종료되었습니다. 새 경매를 불러옵니다.');
+            loadAndRenderAuction(); return;
+        }
         if (latest.highestBidderNick === G.nickname) { alert('이미 최고 입찰자입니다.'); loadAndRenderAuction(); return; }
         if (amount <= latest.highestBid) {
             alert(`이미 ${latest.highestBid.toLocaleString()}G 입찰이 들어왔습니다.\n${(latest.highestBid+1).toLocaleString()}G 이상 입찰하세요.`);
@@ -3029,7 +3030,7 @@ async function _placeBid(cachedAuction) {
         }
         if (G.gold < amount) { alert(`골드가 부족합니다. (보유: ${G.gold.toLocaleString()}G)`); if (btn){btn.disabled=false;btn.textContent='💰 입찰';} return; }
 
-        // Refund previous top bidder
+        // 이전 최고 입찰자에게 환불
         if (latest.highestBidder && latest.highestBidder !== encN(G.nickname)) {
             try {
                 await FB.push(`mb/${latest.highestBidder}`, {
