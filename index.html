@@ -662,7 +662,9 @@ body { background:#000 !important; }
                     style="background:none;border:1px solid #555;border-radius:8px;color:#ccc;font-size:20px;padding:6px 12px;position:relative">
                     👥
                 </button>
-                <button class="btn" id="btn-ban-open" style="display:none;background:#550000;border:1px solid #ff4444;border-radius:8px;color:#ff4444;font-size:13px;padding:6px 10px">🚫 정지</button>
+                <button class="btn" id="btn-ban-open" style="display:none;background:#550000;border:1px solid #ff4444;border-radius:8px;color:#ff4444;font-size:13px;padding:6px 10px">🚫 정지 관리</button>
+                <button class="btn" id="btn-autoclicker-open" style="display:none;background:#001e33;border:1px solid #00aaff;border-radius:8px;color:#00aaff;font-size:13px;padding:6px 10px">🤖 의심자</button>
+                <button class="btn" id="btn-admin-grant-open" style="display:none;background:#332200;border:1px solid #ffd700;border-radius:8px;color:#ffd700;font-size:13px;padding:6px 10px">👑 권한</button>
                 <button class="btn" id="btn-profile" style="display:none">👤</button>
             </div>
         </div>
@@ -825,6 +827,36 @@ body { background:#000 !important; }
         <div style="font-size:13px;color:#aaa;margin-bottom:6px">현재 정지 유저</div>
         <div id="ban-list" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
         <button class="btn" id="btn-ban-close" style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
+    </div>
+</div>
+
+<!-- 오토클릭 사용자 모달 (관리자 전용) -->
+<div class="modal" id="modal-autoclicker">
+    <div class="modal-box">
+        <h2 style="color:#00aaff;margin-bottom:6px">🤖 오토클릭 의심자</h2>
+        <p style="color:#666;font-size:12px;margin-bottom:14px">1초에 30클릭 초과 감지된 유저 목록</p>
+        <div id="autoclicker-list" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn" id="btn-autoclicker-refresh" style="flex:1;background:#001e33;color:#00aaff;font-size:13px;padding:10px 0;border:1px solid #00aaff">🔄 새로고침</button>
+            <button class="btn" id="btn-autoclicker-clear" style="flex:1;background:#2a0000;color:#ff4444;font-size:13px;padding:10px 0;border:1px solid #cc0000">🗑️ 전체 삭제</button>
+        </div>
+        <button class="btn" id="btn-autoclicker-close" style="background:#333;color:#fff;font-size:14px;padding:10px;margin-top:10px;width:100%">닫기</button>
+    </div>
+</div>
+
+<!-- 관리자 권한 부여 모달 (닉네임 "관리자" 전용) -->
+<div class="modal" id="modal-admin-grant">
+    <div class="modal-box">
+        <h2 style="color:#ffd700;margin-bottom:6px">👑 관리자 권한 관리</h2>
+        <p style="color:#666;font-size:12px;margin-bottom:14px">권한을 부여받은 유저는 정지 관리·의심자 창을 사용할 수 있습니다</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input id="grant-nick-input" placeholder="닉네임 입력" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid #555;background:#111;color:#fff;font-size:14px"/>
+            <button class="btn" id="btn-grant-do" style="background:#554400;color:#ffd700;font-size:13px;padding:8px 14px;border:1px solid #aa8800">부여</button>
+            <button class="btn" id="btn-revoke-do" style="background:#2a2a2a;color:#888;font-size:13px;padding:8px 14px;border:1px solid #444">해제</button>
+        </div>
+        <div style="font-size:12px;color:#888;margin-bottom:6px">현재 관리자 권한 보유자</div>
+        <div id="admin-grant-list" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+        <button class="btn" id="btn-admin-grant-close" style="background:#333;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
     </div>
 </div>
 
@@ -1211,6 +1243,20 @@ function upgradeRarity(fruitName) {
 }
 
 // ── Firebase REST ──────────────────────────────────────────────
+function toast(msg) {
+    let el = document.getElementById('toast-notif');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'toast-notif';
+        el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 22px;border-radius:20px;font-size:14px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center';
+        document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    clearTimeout(el._tid);
+    el._tid = setTimeout(() => { el.style.opacity = '0'; }, 2000);
+}
+
 function fbFetch(url, opts={}, ms=8000) {
     const ctrl = new AbortController();
     const tid = setTimeout(()=>ctrl.abort(), ms);
@@ -2406,6 +2452,7 @@ $('inp-nick').addEventListener('keydown',e=>{ if(e.key==='Enter')$('btn-nick-ok'
 
 $('action-btn').onclick = () => {
     if ($('drop-notif').classList.contains('show')) return;
+    checkAutoClick();
     G.registerClick();
 
     // 두리안 도둑 0.5% 체크
@@ -2482,6 +2529,8 @@ $('btn-load-save-code').onclick = async ()=>{
         if (!confirm(`"${data.nickname}" 의 세이브를 불러오면\n현재 데이터가 덮어씌워집니다.\n계속할까요?`)) { btn.textContent='📥 이 코드로 불러오기'; btn.disabled=false; return; }
         delete data._savedAt;
         localStorage.setItem('fruitFarm4', JSON.stringify(data));
+        // 사용된 연동코드는 즉시 삭제 (1회용)
+        try { await fetch(`${FIREBASE_URL}/saves/${code}.json`, { method: 'DELETE' }); } catch {}
         // 이 기기의 세션 ID를 불러온 닉네임의 소유자로 등록 (실패해도 진행)
         try { await registerNickname(data.nickname); } catch {} // 세션 등록 (기존 기기 로그아웃 유도)
         location.reload();
@@ -2524,8 +2573,7 @@ async function startGame() {
         registerNickname(G.nickname);
         processMailbox();
         show('scr-main'); refreshMain(); updateFriendBadge();
-        // 관리자 전용 버튼 표시
-        if (G.nickname === '관리자') $('btn-ban-open').style.display = '';
+        showAdminButtons();
     } else {
         show('scr-start');
     }
@@ -2605,6 +2653,152 @@ $('btn-ban-undo').onclick = async () => {
     if (!nick) return alert('닉네임을 입력하세요');
     await unbanUser(nick);
     $('ban-nick-input').value = '';
+};
+
+// ── 오토클릭 감지 ─────────────────────────────────────────────
+// 1초 슬라이딩 윈도우 안에 30회 초과 시 오토클릭으로 판정
+const _acClickTimes = [];
+let _acReported = false;
+
+async function checkAutoClick() {
+    const now = Date.now();
+    _acClickTimes.push(now);
+    // 1초보다 오래된 기록 제거
+    while (_acClickTimes.length && _acClickTimes[0] < now - 1000) _acClickTimes.shift();
+
+    if (!_acReported && _acClickTimes.length > 30) {
+        _acReported = true; // 중복 전송 방지
+        if (G.nickname && FB) {
+            try {
+                await FB.set(`autoclickers/${encN(G.nickname)}`, {
+                    nick: G.nickname,
+                    ts: Date.now(),
+                    cps: _acClickTimes.length
+                });
+            } catch {}
+        }
+        // 30초 후 재감지 허용
+        setTimeout(() => { _acReported = false; }, 30000);
+    }
+}
+
+// ── 관리자: 오토클릭 감지 목록 ───────────────────────────────
+async function renderAutoClickerList() {
+    const list = $('autoclicker-list');
+    if (!list) return;
+    list.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:16px">불러오는 중...</div>';
+    const data = FB ? await FB.get('autoclickers') : null;
+    if (!data || Object.keys(data).length === 0) {
+        list.innerHTML = '<div style="color:#444;font-size:13px;text-align:center;padding:16px">감지된 오토클릭 유저 없음</div>';
+        return;
+    }
+    list.innerHTML = '';
+    const entries = Object.entries(data).sort((a, b) => b[1].ts - a[1].ts);
+    for (const [key, val] of entries) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:6px;background:#001a2a;border:1px solid #0077bb;border-radius:8px;padding:8px 10px';
+        const date = new Date(val.ts).toLocaleString('ko-KR');
+        const cpsText = val.cps ? `${val.cps}클릭/초` : '?클릭/초';
+        const nick = val.nick || key;
+        row.innerHTML = `
+            <div style="flex:1;min-width:0">
+                <div style="color:#fff;font-weight:bold;font-size:16px;margin-bottom:2px">${nick}</div>
+                <div style="color:#00aaff;font-size:11px;margin-bottom:1px">⚡ ${cpsText} 감지</div>
+                <div style="color:#555;font-size:11px">📅 ${date}</div>
+            </div>
+            <button class="btn" data-nick="${nick}" data-key="${key}" style="background:#550000;color:#ff4444;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid #cc0000">🚫 정지</button>
+            <button class="btn" data-key="${key}" style="background:#1a1a1a;color:#666;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid #333">✕</button>`;
+        const [banBtn, delBtn] = row.querySelectorAll('button');
+        banBtn.onclick = async () => {
+            const nick = banBtn.dataset.nick;
+            const reason = prompt(`'${nick}' 정지 사유를 입력하세요:`, '오토클릭 사용');
+            if (reason === null) return;
+            await banUser(nick, reason || '오토클릭 사용');
+            await FB.del(`autoclickers/${banBtn.dataset.key}`);
+            renderAutoClickerList();
+        };
+        delBtn.onclick = async () => {
+            await FB.del(`autoclickers/${delBtn.dataset.key}`);
+            renderAutoClickerList();
+        };
+        list.appendChild(row);
+    }
+}
+
+$('btn-autoclicker-open').onclick = () => { renderAutoClickerList(); openModal('modal-autoclicker'); };
+$('btn-autoclicker-close').onclick = () => closeModal('modal-autoclicker');
+$('btn-autoclicker-refresh').onclick = () => renderAutoClickerList();
+$('btn-autoclicker-clear').onclick = async () => {
+    if (!confirm('오토클릭 전체 기록을 삭제할까요?')) return;
+    await FB.del('autoclickers');
+    renderAutoClickerList();
+};
+
+// ── 관리자 권한 시스템 ────────────────────────────────────────
+async function hasAdminRole(nick) {
+    if (!FB || !nick) return false;
+    if (nick === '관리자') return true;
+    const data = await FB.get(`admins/${encN(nick)}`);
+    return !!data;
+}
+
+async function showAdminButtons() {
+    const admin = await hasAdminRole(G.nickname);
+    if (admin) {
+        $('btn-ban-open').style.display = '';
+        $('btn-autoclicker-open').style.display = '';
+    }
+    if (G.nickname === '관리자') {
+        $('btn-admin-grant-open').style.display = '';
+    }
+}
+
+async function renderAdminGrantList() {
+    const list = $('admin-grant-list');
+    if (!list) return;
+    list.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:10px">불러오는 중...</div>';
+    const data = FB ? await FB.get('admins') : null;
+    if (!data || Object.keys(data).length === 0) {
+        list.innerHTML = '<div style="color:#444;font-size:13px;text-align:center;padding:10px">부여된 권한 없음</div>';
+        return;
+    }
+    list.innerHTML = '';
+    for (const [key, val] of Object.entries(data)) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;background:#1a1200;border:1px solid #665500;border-radius:8px;padding:8px 10px';
+        const date = new Date(val.grantedAt).toLocaleDateString('ko-KR');
+        row.innerHTML = `
+            <div style="flex:1;min-width:0">
+                <div style="color:#ffd700;font-weight:bold;font-size:14px">👑 ${val.nick || key}</div>
+                <div style="color:#666;font-size:11px">부여일: ${date}</div>
+            </div>
+            <button class="btn" data-key="${key}" style="background:#2a0000;color:#ff6666;font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #660000">해제</button>`;
+        row.querySelector('button').onclick = async (e) => {
+            await FB.del(`admins/${e.currentTarget.dataset.key}`);
+            renderAdminGrantList();
+        };
+        list.appendChild(row);
+    }
+}
+
+$('btn-admin-grant-open').onclick = () => { renderAdminGrantList(); openModal('modal-admin-grant'); };
+$('btn-admin-grant-close').onclick = () => closeModal('modal-admin-grant');
+$('btn-grant-do').onclick = async () => {
+    const nick = $('grant-nick-input').value.trim();
+    if (!nick) return alert('닉네임을 입력하세요');
+    if (nick === '관리자') return alert('관리자는 이미 최고 권한을 가집니다');
+    await FB.set(`admins/${encN(nick)}`, { nick, grantedAt: Date.now(), grantedBy: G.nickname });
+    $('grant-nick-input').value = '';
+    alert(`'${nick}' 에게 관리자 권한을 부여했습니다`);
+    renderAdminGrantList();
+};
+$('btn-revoke-do').onclick = async () => {
+    const nick = $('grant-nick-input').value.trim();
+    if (!nick) return alert('닉네임을 입력하세요');
+    await FB.del(`admins/${encN(nick)}`);
+    $('grant-nick-input').value = '';
+    alert(`'${nick}' 의 관리자 권한을 해제했습니다`);
+    renderAdminGrantList();
 };
 
 startGame();
