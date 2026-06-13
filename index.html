@@ -1534,7 +1534,7 @@ function fbFetch(url, opts={}, ms=8000) {
 const FB = FIREBASE_URL ? {
     async get(p)   { try{const r=await fbFetch(`${FIREBASE_URL}/ff/${p}.json`);return await r.json();}catch{return null;} },
     async set(p,d) { try{await fbFetch(`${FIREBASE_URL}/ff/${p}.json`,{method:'PUT',body:JSON.stringify(d)});}catch{} },
-    async push(p,d){ try{await fbFetch(`${FIREBASE_URL}/ff/${p}.json`,{method:'POST',body:JSON.stringify(d)});}catch{} },
+    async push(p,d){ try{const r=await fbFetch(`${FIREBASE_URL}/ff/${p}.json`,{method:'POST',body:JSON.stringify(d)});return !!(r&&r.ok);}catch{return false;} },
     async del(p)   { try{await fbFetch(`${FIREBASE_URL}/ff/${p}.json`,{method:'DELETE'});}catch{} },
 } : null;
 function encN(s){ return s.replace(/[.#$[\]/]/g,'_'); }
@@ -1583,8 +1583,8 @@ function setMailbox(nick,msgs)  { localStorage.setItem(`fruitFarm4_mb_${nick}`,J
 function sendToMailbox(nick,msg){ const b=getMailbox(nick); b.push({...msg,ts:Date.now()}); setMailbox(nick,b); }
 
 async function pushMsg(nick, msg) {
-    if (FB) await FB.push(`mb/${encN(nick)}`, {...msg, ts:Date.now()});
-    else sendToMailbox(nick, msg);
+    if (FB) return await FB.push(`mb/${encN(nick)}`, {...msg, ts:Date.now()});
+    else { sendToMailbox(nick, msg); return true; }
 }
 async function processMailbox() {
     if (!G.nickname) return;
@@ -1653,31 +1653,36 @@ function canonicalItemKey(key) {
 }
 async function acceptTrade(offer) {
     const wantItems = offer.wantItems || {};
-    const wantGold  = offer.wantGold  || 0;
+    const wantGold  = Number(offer.wantGold)  || 0;
     // 요청된 아이템/골드 보유 확인
     for(const[f,c]of Object.entries(wantItems)){
         const key = canonicalItemKey(f);
         if((G.inventory[key]||0) < Number(c)) return alert(`'${key}'이(가) 부족합니다. (필요 ${c}개)`);
     }
     if(G.gold < wantGold) return alert(`골드가 부족합니다. (필요 ${wantGold.toLocaleString()}G)`);
-    // 내가 받을 것 (offer.items + offer.gold)
-    G.gold += offer.gold||0;
+
+    // 상대에게 줄 아이템 목록 준비
+    const returnItems = {};
+    for(const[f,c]of Object.entries(wantItems)){
+        returnItems[canonicalItemKey(f)] = Number(c);
+    }
+
+    // Firebase 전송 먼저 — 성공해야만 내 상태를 바꿈
+    const ok = await pushMsg(offer.from, {type:'trade_return', from:G.nickname, items:returnItems, gold:wantGold});
+    if (!ok) return alert('거래 메시지 전송에 실패했습니다. 인터넷 연결을 확인 후 다시 시도해주세요.');
+
+    // 전송 성공 후 내 상태 반영
+    G.gold += Number(offer.gold)||0;
     for(const[f,c]of Object.entries(offer.items||{})){
         G.addFruit(canonicalItemKey(f), Number(c));
     }
-    // 상대가 원하는 것 차감 후 전송
     G.gold -= wantGold;
-    const returnItems = {};
     for(const[f,c]of Object.entries(wantItems)){
         const key = canonicalItemKey(f);
         G.inventory[key] = Math.max(0,(G.inventory[key]||0)-Number(c));
-        returnItems[key] = Number(c);
     }
-    // 즉시 상태/UI 업데이트 (네트워크 대기 없이)
-    G.tradeOffers=G.tradeOffers.filter(o=>o.ts!==offer.ts);
+    G.tradeOffers = G.tradeOffers.filter(o=>o.ts!==offer.ts);
     G.save(); refreshMain(); renderFriends(); updateFriendBadge();
-    // 네트워크는 백그라운드에서 처리
-    pushMsg(offer.from,{type:'trade_return',from:G.nickname,items:returnItems,gold:wantGold});
 }
 function rejectTrade(offer) {
     G.tradeOffers=G.tradeOffers.filter(o=>o.ts!==offer.ts);
@@ -2953,7 +2958,7 @@ async function startGame() {
     if (localStorage.getItem('fruitFarm4_kicked')) {
         localStorage.removeItem('fruitFarm4_kicked');
         show('scr-nick');
-        setInterval(()=>{ if(G.checkDay()){G.save();refreshMain();resolveAuctions(getAuctionDate(-1));runWeeklySettlement();} }, 30000);
+        setInterval(async ()=>{ if(G.checkDay()){G.save();refreshMain();resolveAuctions(await getAuctionDate(-1));runWeeklySettlement();} }, 30000);
         setInterval(()=>{ processMailbox(); updateFriendBadge(); }, 5000);
         setInterval(checkActiveSession, 20000);
         return;
@@ -2982,7 +2987,7 @@ async function startGame() {
     } else {
         show('scr-start');
     }
-    setInterval(()=>{ if(G.checkDay()){G.save();refreshMain();resolveAuctions(getAuctionDate(-1));runWeeklySettlement();} }, 30000);
+    setInterval(async ()=>{ if(G.checkDay()){G.save();refreshMain();resolveAuctions(await getAuctionDate(-1));runWeeklySettlement();} }, 30000);
     setInterval(()=>{ processMailbox(); updateFriendBadge(); }, 5000);
     setInterval(checkActiveSession, 20000); // 20초마다 세션 확인
     // 30초마다 정지 여부 재확인
@@ -3371,8 +3376,9 @@ for (const f of BASE_FRUITS) {
     }
 }
 
-function getAuctionDate(offsetDays = 0) {
-    const d = new Date();
+async function getAuctionDate(offsetDays = 0) {
+    const ts = await getServerTime();
+    const d = new Date(ts);
     d.setDate(d.getDate() + offsetDays);
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
@@ -3445,9 +3451,9 @@ async function renderAuction() {
     el.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:24px">불러오는 중...</div>';
 
     // 어제 낙찰 확인
-    await resolveAuctions(getAuctionDate(-1));
+    await resolveAuctions(await getAuctionDate(-1));
 
-    const today = getAuctionDate(0);
+    const today = await getAuctionDate(0);
     const items = getDailyAuctionItems(today);
     const slotData = await Promise.all(items.map((_, i) => FB ? FB.get(`auction/${today}/${i}`) : null));
 
@@ -3657,8 +3663,16 @@ function renderEventList() {
     }
 }
 
-function openGourdModal() {
+async function openGourdModal() {
     closeModal('modal-event');
+    // Firebase에서 수령 여부 확인 (localStorage 조작 방어)
+    if (FB && G.nickname && !G.gourdRewardClaimed) {
+        const claimed = await FB.get(`gourdClaim/${encN(G.nickname)}`);
+        if (claimed) {
+            G.gourdRewardClaimed = true;
+            G.save();
+        }
+    }
     updateGourdUI();
     openModal('modal-gourd');
     bindGourdClick();
@@ -3707,6 +3721,7 @@ function bindGourdClick() {
             // 보상 지급
             G.addFruit('축복의 복숭아', 1);
             G.gourdRewardClaimed = true;
+            if (FB && G.nickname) FB.set(`gourdClaim/${encN(G.nickname)}`, { ts: Date.now() });
             G.save(); refreshMain();
             updateGourdUI();
             toast('🎉 축복의 복숭아를 획득했습니다!');
@@ -3721,6 +3736,7 @@ function bindGourdClick() {
         if (G.gourdClickCount >= GOURD_TARGET) {
             G.addFruit('축복의 복숭아', 1);
             G.gourdRewardClaimed = true;
+            if (FB && G.nickname) FB.set(`gourdClaim/${encN(G.nickname)}`, { ts: Date.now() });
         }
         if (G.gourdClickCount % 10 === 0) G.save();
         updateGourdUI();
