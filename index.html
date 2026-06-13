@@ -1538,6 +1538,7 @@ const FB = FIREBASE_URL ? {
     async del(p)   { try{await fbFetch(`${FIREBASE_URL}/ff/${p}.json`,{method:'DELETE'});}catch{} },
 } : null;
 function encN(s){ return s.replace(/[.#$[\]/]/g,'_'); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 // ── 닉네임 레지스트리 ──────────────────────────────────────────
 // 기기마다 고유한 세션 ID로 "내 닉네임"을 구분
@@ -1595,14 +1596,53 @@ async function processMailbox() {
     } else {
         msgs=getMailbox(G.nickname); if(!msgs.length)return; setMailbox(G.nickname,[]);
     }
+    const validFruits = new Set(BASE_FRUITS.map(f=>f.name));
+    const isValidFruit = name => {
+        const base = name.startsWith(GOLD)?name.slice(GOLD.length):name.startsWith(DIA)?name.slice(DIA.length):name;
+        return validFruits.has(base);
+    };
     let changed=false;
     for(const m of msgs){
-        if(m.type==='friend_req')    {if(!G.pendingRequests.includes(m.from)){G.pendingRequests.push(m.from);changed=true;}}
-        else if(m.type==='friend_accept'){if(!G.friends.includes(m.from)){G.friends.push(m.from);changed=true;}}
-        else if(m.type==='trade')    {G.tradeOffers.push(m);changed=true;}
-        else if(m.type==='trade_return'){G.gold+=m.gold||0;for(const[f,c]of Object.entries(m.items||{}))G.addFruit(f,c);changed=true;}
-        else if(m.type==='auction_refund'){G.gold+=m.amount||0;changed=true;toast(`🔔 경매 환불: ${(m.amount||0).toLocaleString()}G (${m.fruit||''} 최고입찰자 변경)`);}
-        else if(m.type==='auction_won'){G.addFruit(m.fruit,1);changed=true;toast(`🎉 경매 낙찰! ${G.emoji[m.fruit]||''}${m.fruit} 획득!`);}
+        // 메시지 기본 유효성 검사
+        if(!m || typeof m.type !== 'string') continue;
+        if(m.from && typeof m.from !== 'string') continue;
+
+        if(m.type==='friend_req'){
+            if(typeof m.from==='string' && m.from.length<=20 && !G.pendingRequests.includes(m.from)){G.pendingRequests.push(m.from);changed=true;}
+        }
+        else if(m.type==='friend_accept'){
+            if(typeof m.from==='string' && m.from.length<=20 && !G.friends.includes(m.from)){G.friends.push(m.from);changed=true;}
+        }
+        else if(m.type==='trade'){
+            // 거래 메시지 검증: 비정상 금액·아이템 차단
+            const g = Number(m.gold)||0, wg = Number(m.wantGold)||0;
+            if(g<0||wg<0) continue;
+            const items = m.items||{}, wantItems = m.wantItems||{};
+            const badItem = [...Object.keys(items),...Object.keys(wantItems)].some(f=>!isValidFruit(f));
+            if(badItem) continue;
+            const badCount = [...Object.values(items),...Object.values(wantItems)].some(c=>Number(c)<1||Number(c)>9999);
+            if(badCount) continue;
+            G.tradeOffers.push(m);changed=true;
+        }
+        else if(m.type==='trade_return'){
+            const gold = Number(m.gold)||0;
+            if(gold<0) continue;
+            G.gold += gold;
+            for(const[f,c]of Object.entries(m.items||{})){
+                if(!isValidFruit(f)) continue;
+                const cnt=Number(c); if(cnt<0||cnt>9999) continue;
+                G.addFruit(f,cnt);
+            }
+            changed=true;
+        }
+        else if(m.type==='auction_refund'){
+            const amt=Number(m.amount)||0;
+            if(amt<0) continue;
+            G.gold+=amt;changed=true;toast(`🔔 경매 환불: ${amt.toLocaleString()}G (${esc(m.fruit||'')} 최고입찰자 변경)`);
+        }
+        else if(m.type==='auction_won'){
+            if(typeof m.fruit==='string'&&isValidFruit(m.fruit)){G.addFruit(m.fruit,1);changed=true;toast(`🎉 경매 낙찰! ${G.emoji[m.fruit]||''}${esc(m.fruit)} 획득!`);}
+        }
     }
     if(changed){G.save();updateFriendBadge();refreshMain();}
 }
@@ -1711,7 +1751,7 @@ function renderFriends() {
             };
             html += `<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:10px 12px;margin-bottom:8px">
                 <div style="color:#fff;font-size:13px;margin-bottom:8px">
-                    <span style="color:#0f0;font-weight:bold">${offer.from}</span>님의 거래 요청
+                    <span style="color:#0f0;font-weight:bold">${esc(offer.from)}</span>님의 거래 요청
                 </div>
                 <div style="font-size:12px;margin-bottom:4px"><span style="color:#ffd700">📤 줄 것:</span> <span style="color:#aaa">${fmtItems(offer.items, offer.gold)}</span></div>
                 <div style="font-size:12px;margin-bottom:8px"><span style="color:#7af">📥 받을 것:</span> <span style="color:#aaa">${fmtItems(offer.wantItems, offer.wantGold)}</span></div>
@@ -1734,10 +1774,10 @@ function renderFriends() {
     } else {
         for (const nick of G.pendingRequests) {
             html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1a1a1a;border-radius:8px;margin-bottom:6px">
-                <span style="flex:1;color:#fff;font-size:13px">👤 ${nick}</span>
-                <button class="btn fr-accept" data-nick="${nick}"
+                <span style="flex:1;color:#fff;font-size:13px">👤 ${esc(nick)}</span>
+                <button class="btn fr-accept" data-nick="${esc(nick)}"
                     style="background:#1a4a1a;color:#0f0;font-size:12px;padding:6px 12px">수락</button>
-                <button class="btn fr-reject" data-nick="${nick}"
+                <button class="btn fr-reject" data-nick="${esc(nick)}"
                     style="background:#3a1a1a;color:#f44;font-size:12px;padding:6px 12px">거절</button>
             </div>`;
         }
@@ -1752,10 +1792,10 @@ function renderFriends() {
     } else {
         for (const nick of G.friends) {
             html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1a1a1a;border-radius:8px;margin-bottom:6px">
-                <span style="flex:1;color:#fff;font-size:13px">👤 ${nick}</span>
-                <button class="btn fl-trade" data-nick="${nick}"
+                <span style="flex:1;color:#fff;font-size:13px">👤 ${esc(nick)}</span>
+                <button class="btn fl-trade" data-nick="${esc(nick)}"
                     style="background:#1a3a5a;color:#7af;font-size:12px;padding:6px 12px">거래</button>
-                <button class="btn fl-remove" data-nick="${nick}"
+                <button class="btn fl-remove" data-nick="${esc(nick)}"
                     style="background:#2a2a2a;color:#888;font-size:12px;padding:6px 12px">삭제</button>
             </div>`;
         }
@@ -1846,7 +1886,7 @@ async function openTradeModal(toNick) {
         // ── 내가 받을 것 ─────────────────────────────────
         html += `<div style="border-top:1px solid #2a2a2a;margin:10px 0 8px"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <span style="color:#7af;font-size:12px;font-weight:bold">📥 내가 받을 것 <span style="color:#555;font-size:11px;font-weight:normal">(${toNick} 보유)</span></span>
+            <span style="color:#7af;font-size:12px;font-weight:bold">📥 내가 받을 것 <span style="color:#555;font-size:11px;font-weight:normal">(${esc(toNick)} 보유)</span></span>
             <span style="color:#aaa;font-size:11px">${wantSummary} ${state.wantGold>0?`💰${state.wantGold.toLocaleString()}G`:''}</span>
         </div>`;
         html += `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#1a1a1a;border-radius:6px;margin-bottom:4px">
@@ -1861,7 +1901,7 @@ async function openTradeModal(toNick) {
                 hasFriendItems = true;
                 html += countRow(name, state.wantItems[name]||0, inv, 'tw-p', 'tw-m');
             }
-        if (!hasFriendItems) html += `<div style="color:#555;font-size:12px;padding:6px 8px">${toNick}님이 보유한 과일이 없습니다.</div>`;
+        if (!hasFriendItems) html += `<div style="color:#555;font-size:12px;padding:6px 8px">${esc(toNick)}님이 보유한 과일이 없습니다.</div>`;
 
         html += `</div>
         <button class="btn" id="btn-do-trade"
@@ -1875,8 +1915,8 @@ async function openTradeModal(toNick) {
         el.querySelectorAll('.tw-m').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.wantItems[n]=Math.max((state.wantItems[n]||0)-1,0); syncGold(); render(); });
 
         const syncGold = () => {
-            state.offerGold = parseInt($('trade-offer-gold')?.value)||0;
-            state.wantGold  = parseInt($('trade-want-gold')?.value)||0;
+            state.offerGold = Math.max(parseInt($('trade-offer-gold')?.value)||0, 0);
+            state.wantGold  = Math.max(parseInt($('trade-want-gold')?.value)||0,  0);
         };
 
         $('btn-do-trade').onclick=async()=>{
@@ -1885,6 +1925,7 @@ async function openTradeModal(toNick) {
             const wantItems  = Object.fromEntries(Object.entries(state.wantItems).filter(([,c])=>c>0));
             if (!Object.keys(offerItems).length && state.offerGold<=0) return alert('줄 항목을 선택하세요.');
             if (state.offerGold > G.gold) return alert('골드가 부족합니다.');
+            if (state.offerGold < 0 || state.wantGold < 0) return alert('올바르지 않은 금액입니다.');
             await sendTrade(toNick, offerItems, state.offerGold, wantItems, state.wantGold);
             closeModal('modal-trade');
         };
@@ -2810,6 +2851,8 @@ $('btn-start').onclick = () => G.nickname ? (show('scr-main'),refreshMain()) : s
 $('btn-nick-ok').onclick = async () => {
     const nick=$('inp-nick').value.trim();
     if(!nick){alert('닉네임을 입력해주세요.');return;}
+    if(nick.length>16){alert('닉네임은 16자 이하로 입력해주세요.');return;}
+    if(/<|>|&|"|'|`/.test(nick)){alert('닉네임에 사용할 수 없는 문자가 포함되어 있습니다.');return;}
     if(await isNicknameTaken(nick)){alert(`❌ '${nick}'은(는) 이미 사용 중인 닉네임입니다.\n다른 닉네임을 선택해주세요.`);return;}
     await registerNickname(nick);
     G.nickname=nick; G.save(); show('scr-main'); refreshMain();
@@ -3038,10 +3081,10 @@ async function renderBanList() {
         const date = new Date(val.ts).toLocaleDateString('ko-KR');
         row.innerHTML = `
             <div style="flex:1;min-width:0">
-                <div style="color:#ff6666;font-weight:bold;font-size:13px">${key}</div>
-                <div style="color:#aaa;font-size:11px">${val.reason||''} · ${date}</div>
+                <div style="color:#ff6666;font-weight:bold;font-size:13px">${esc(key)}</div>
+                <div style="color:#aaa;font-size:11px">${esc(val.reason||'')} · ${date}</div>
             </div>
-            <button class="btn" data-nick="${key}" style="background:#226622;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px">해제</button>`;
+            <button class="btn" data-nick="${esc(key)}" style="background:#226622;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px">해제</button>`;
         row.querySelector('button').onclick = () => unbanUser(key);
         list.appendChild(row);
     }
@@ -3162,12 +3205,12 @@ async function renderAutoClickerList() {
         const nick = val.nick || key;
         row.innerHTML = `
             <div style="flex:1;min-width:0">
-                <div style="color:#fff;font-weight:bold;font-size:16px;margin-bottom:2px">${nick}</div>
-                <div style="color:#00aaff;font-size:11px;margin-bottom:1px">⚡ ${cpsText} 감지</div>
+                <div style="color:#fff;font-weight:bold;font-size:16px;margin-bottom:2px">${esc(nick)}</div>
+                <div style="color:#00aaff;font-size:11px;margin-bottom:1px">⚡ ${esc(cpsText)} 감지</div>
                 <div style="color:#555;font-size:11px">📅 ${date}</div>
             </div>
-            <button class="btn" data-nick="${nick}" data-key="${key}" style="background:#550000;color:#ff4444;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid #cc0000">🚫 정지</button>
-            <button class="btn" data-key="${key}" style="background:#1a1a1a;color:#666;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid #333">✕</button>`;
+            <button class="btn" data-nick="${esc(nick)}" data-key="${esc(key)}" style="background:#550000;color:#ff4444;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid #cc0000">🚫 정지</button>
+            <button class="btn" data-key="${esc(key)}" style="background:#1a1a1a;color:#666;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid #333">✕</button>`;
         const [banBtn, delBtn] = row.querySelectorAll('button');
         banBtn.onclick = async () => {
             const nick = banBtn.dataset.nick;
@@ -3251,10 +3294,10 @@ async function renderAdminGrantList() {
         const date = new Date(val.grantedAt).toLocaleDateString('ko-KR');
         row.innerHTML = `
             <div style="flex:1;min-width:0">
-                <div style="color:#ffd700;font-weight:bold;font-size:14px">👑 ${val.nick || key}</div>
+                <div style="color:#ffd700;font-weight:bold;font-size:14px">👑 ${esc(val.nick || key)}</div>
                 <div style="color:#666;font-size:11px">부여일: ${date}</div>
             </div>
-            <button class="btn" data-key="${key}" style="background:#2a0000;color:#ff6666;font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #660000">해제</button>`;
+            <button class="btn" data-key="${esc(key)}" style="background:#2a0000;color:#ff6666;font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #660000">해제</button>`;
         row.querySelector('button').onclick = async (e) => {
             await FB.del(`admins/${e.currentTarget.dataset.key}`);
             renderAdminGrantList();
@@ -3498,7 +3541,7 @@ async function renderAuction() {
                     <div style="font-size:15px;font-weight:bold;color:${topBid>0?'#ffd700':'#444'}">
                         ${topBid > 0 ? topBid.toLocaleString()+'G' : '입찰 없음'}
                     </div>
-                    ${topBidder ? `<div style="font-size:11px;color:${isMe?'#0f0':'#777'}">${isMe?'👑 내가 최고':'👤 '+topBidder}</div>` : ''}
+                    ${topBidder ? `<div style="font-size:11px;color:${isMe?'#0f0':'#777'}">${isMe?'👑 내가 최고':'👤 '+esc(topBidder)}</div>` : ''}
                 </div>
             </div>
             ${resolved
@@ -3578,7 +3621,7 @@ async function renderRanking(mode) {
         row.innerHTML = `
             <div style="font-size:${rank<=3?'22px':'15px'};min-width:32px;text-align:center;font-weight:bold;color:${rank<=3?'#ffd700':'#555'}">${medal}</div>
             <div style="flex:1;min-width:0">
-                <div style="font-size:14px;font-weight:bold;color:${isMe?(isGold?'#00cc00':'#5599ff'):'#eee'}">${entry.nick}${isMe?' 👈 나':''}</div>
+                <div style="font-size:14px;font-weight:bold;color:${isMe?(isGold?'#00cc00':'#5599ff'):'#eee'}">${esc(entry.nick)}${isMe?' 👈 나':''}</div>
                 ${value}
             </div>`;
         return row;
