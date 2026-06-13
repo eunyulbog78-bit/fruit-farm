@@ -32,6 +32,7 @@ body.juicy { background:linear-gradient(135deg,#1a0a00,#2a0a14); }
 /* ══ 기본 배경 (과즙) ══════════════════════════════════════ */
 body { background:#000 !important; }
 
+
 /* 떠오르는 과일 */
 .juice-drop {
     position:absolute; pointer-events:none; z-index:2;
@@ -625,6 +626,54 @@ body { background:#000 !important; }
     20%  { opacity:.75; }
     100% { transform:translateY(-75px) scale(1.7); opacity:0; }
 }
+/* ── 리미티드 등급 ── */
+.rarity-limited {
+    background: linear-gradient(135deg, #1e0020, #2a0035, #1a0018);
+    background-size: 200% 200%;
+    animation: limitedGlow 2.5s ease-in-out infinite;
+}
+@keyframes limitedGlow {
+    0%,100% { box-shadow: 0 0 18px #cc0077, 0 0 38px #66003a; }
+    50%     { box-shadow: 0 0 32px #ff1493, 0 0 64px #cc0077, 0 0 96px #660044; }
+}
+.limited-text {
+    background: linear-gradient(90deg, #ff69b4, #ffd700, #ff1493, #ffd700, #ff69b4);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: limitedTextShift 3s linear infinite;
+    display: inline-block;
+}
+@keyframes limitedTextShift { to { background-position: 300% center; } }
+.limited-border { animation: limitedBorderColor 3.5s linear infinite; }
+@keyframes limitedBorderColor {
+    0%   { border-color: #ff69b4; box-shadow: 0 0 18px #ff69b488, 0 0 50px #ff69b418; }
+    50%  { border-color: #ffd700; box-shadow: 0 0 18px #ffd70088, 0 0 50px #ffd70018; }
+    100% { border-color: #ff69b4; box-shadow: 0 0 18px #ff69b488, 0 0 50px #ff69b418; }
+}
+.limited-left-border {
+    border-left: 3px solid #ff69b4 !important;
+    animation: limitedLeftBorder 3.5s linear infinite;
+}
+@keyframes limitedLeftBorder {
+    0%   { border-left-color: #ff69b4; }
+    50%  { border-left-color: #ffd700; }
+    100% { border-left-color: #ff69b4; }
+}
+/* 이벤트 버튼 펄스 */
+@keyframes eventBtnPulse {
+    0%,100% { box-shadow: 0 0 8px #ff4488, 0 0 20px rgba(255,20,100,.35); border-color: #ff69b4; }
+    50%     { box-shadow: 0 0 18px #ff1166, 0 0 38px rgba(255,17,102,.55); border-color: #ffd700; }
+}
+/* 축복의 복숭아 상세 애니메이션 */
+@keyframes blessedPeachFloat {
+    0%,100% { transform: translateY(0) scale(1);    filter: drop-shadow(0 0 10px #FFD70066) drop-shadow(0 0 22px #FF880033); }
+    50%     { transform: translateY(-10px) scale(1.07); filter: drop-shadow(0 0 20px #FFD700aa) drop-shadow(0 0 44px #FF880066); }
+}
+/* 박 클릭 모달 */
+#gourd-icon svg { display:block; margin:0 auto; cursor:pointer; }
+#gourd-icon:active svg { transform: scale(0.88); }
 </style>
 </head>
 <body>
@@ -657,6 +706,10 @@ body { background:#000 !important; }
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
             <span id="lbl-nick" style="color:#0f0;font-weight:bold;font-size:15px"></span>
             <div style="display:flex;gap:6px;align-items:center">
+                <button class="btn" id="btn-event-open"
+                    style="display:none;background:none;border:1px solid #cc0066;border-radius:8px;color:#ff69b4;font-size:13px;padding:6px 12px;font-weight:bold;animation:eventBtnPulse 1.5s ease-in-out infinite">
+                    🎉 이벤트
+                </button>
                 <button class="btn" id="btn-ranking"
                     style="background:none;border:1px solid #555;border-radius:8px;color:#ffd700;font-size:13px;padding:6px 12px">
                     🏆 랭킹
@@ -701,9 +754,9 @@ body { background:#000 !important; }
         <button class="btn" id="btn-shop-open"
             style="background:#1a5c8a;color:#fff;font-size:14px;padding:12px 0">
             🛒 상점</button>
-        <button class="btn" disabled
-            style="background:#2a2a2a;color:#555;border:1px solid #333;font-size:13px;padding:12px 0;cursor:not-allowed">
-            🔨 경매장<br><span style="font-size:10px;color:#444">업데이트 예정</span></button>
+        <button class="btn" id="btn-auction-open"
+            style="background:#1a2a3a;color:#7af;border:1px solid #5599ff;font-size:14px;padding:12px 0">
+            🔨 경매장</button>
     </div>
 </div>
 
@@ -715,9 +768,19 @@ body { background:#000 !important; }
 <!-- 랭킹 모달 -->
 <div class="modal" id="modal-ranking">
     <div class="modal-box">
-        <h2 style="color:#ffd700;margin-bottom:4px">🏆 골드 랭킹</h2>
-        <p style="color:#555;font-size:12px;margin-bottom:14px">TOP 30</p>
-        <div id="ranking-list" style="max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+        <h2 style="color:#ffd700;margin-bottom:10px">🏆 랭킹</h2>
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+            <button class="btn rank-tab-btn" id="rank-tab-gold"
+                style="flex:1;font-size:13px;padding:8px 0;background:#3a2a00;color:#ffd700;border:1px solid #ffd700;border-radius:8px">
+                💰 골드
+            </button>
+            <button class="btn rank-tab-btn" id="rank-tab-clicks"
+                style="flex:1;font-size:13px;padding:8px 0;background:#111;color:#888;border:1px solid #444;border-radius:8px">
+                👆 클릭수
+            </button>
+        </div>
+        <p style="color:#555;font-size:12px;margin-bottom:10px">TOP 30</p>
+        <div id="ranking-list" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
         <button class="btn" id="btn-ranking-close" style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
     </div>
 </div>
@@ -789,11 +852,17 @@ body { background:#000 !important; }
         <hr style="border-color:#333;margin-bottom:20px">
         <div>
             <p style="color:#aaa;font-size:13px;margin-bottom:10px">다른 기기에서 발급받은 코드를<br>입력하면 그 세이브를 불러옵니다</p>
+            <p style="color:#ff6666;font-size:11px;margin-bottom:8px">⚠️ 현재 기기의 데이터가 덮어씌워집니다</p>
             <input id="inp-save-code" type="text" maxlength="8" placeholder="8자리 코드 입력"
                 style="width:100%;padding:10px;font-size:18px;text-align:center;letter-spacing:4px;
                        background:#222;color:#fff;border:1px solid #555;border-radius:8px;
                        font-family:inherit;text-transform:uppercase;margin-bottom:8px">
             <button class="btn" id="btn-load-save-code" style="background:#2a6a2a;color:#fff;font-size:14px;padding:11px 0;width:100%">📥 이 코드로 불러오기</button>
+        </div>
+        <div id="sync-backup-box" style="display:none;margin-top:14px;background:#1a0a0a;border:1px solid #883333;border-radius:8px;padding:12px">
+            <div style="color:#ff8888;font-size:12px;font-weight:bold;margin-bottom:6px">⏪ 직전 데이터 복구</div>
+            <div id="sync-backup-info" style="color:#aaa;font-size:11px;margin-bottom:8px"></div>
+            <button class="btn" id="btn-restore-backup" style="background:#441111;color:#ffaaaa;font-size:13px;padding:8px 0;width:100%;border:1px solid #883333">이전 계정으로 되돌리기</button>
         </div>
         <button class="btn" id="btn-sync-close" style="background:#444;color:#fff;font-size:14px;padding:10px;width:100%;margin-top:14px">닫기</button>
     </div>
@@ -911,6 +980,45 @@ body { background:#000 !important; }
     </div>
 </div>
 
+<!-- 경매장 모달 -->
+<div class="modal" id="modal-auction">
+    <div class="modal-box" style="max-width:420px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <h2 style="color:#7af">🔨 경매장</h2>
+            <span id="auction-gold-lbl" style="color:#ffd700;font-size:13px;font-weight:bold"></span>
+        </div>
+        <p style="color:#555;font-size:11px;margin-bottom:12px">매일 자정에 새 경매가 시작됩니다. 가장 높은 입찰자가 낙찰됩니다.</p>
+        <div id="auction-content"></div>
+        <button class="btn" id="btn-auction-close"
+            style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:8px;width:100%">닫기</button>
+    </div>
+</div>
+
+<!-- 이벤트 모달 -->
+<div class="modal" id="modal-event">
+    <div class="modal-box" style="max-width:380px">
+        <h2 style="color:#ff69b4;margin-bottom:4px">🎉 이벤트</h2>
+        <p style="color:#555;font-size:12px;margin-bottom:14px">기간 한정 특별 이벤트</p>
+        <div id="event-list" style="display:flex;flex-direction:column;gap:10px"></div>
+        <button class="btn" id="btn-event-close" style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:14px;width:100%">닫기</button>
+    </div>
+</div>
+
+<!-- 박 두드리기 모달 -->
+<div class="modal" id="modal-gourd">
+    <div class="modal-box" style="max-width:360px;text-align:center">
+        <h2 style="color:#ff8800;margin-bottom:4px">🎃 1달 기념 — 박 두드리기</h2>
+        <p style="color:#555;font-size:11px;margin-bottom:10px">박을 <strong style="color:#ffd700">10,000번</strong> 두드리면 <strong style="color:#ff69b4">축복의 복숭아</strong>를 얻을 수 있습니다!</p>
+        <div id="gourd-icon" style="cursor:pointer;user-select:none;display:inline-block;line-height:1;transition:transform .08s"></div>
+        <div id="gourd-progress-text" style="font-size:18px;font-weight:bold;color:#ffd700;margin:10px 0"></div>
+        <div style="background:#333;border-radius:8px;height:14px;margin:4px 0 10px;overflow:hidden">
+            <div id="gourd-progress-bar" style="height:100%;background:linear-gradient(90deg,#ff8800,#ffd700);border-radius:8px;width:0%;transition:width .15s"></div>
+        </div>
+        <div id="gourd-reward-msg" style="display:none;margin:10px 0;padding:14px;background:#1a1000;border:2px solid #ffd700;border-radius:12px;color:#ffd700;font-weight:bold;font-size:14px"></div>
+        <button class="btn" id="btn-gourd-close" style="background:#444;color:#fff;font-size:14px;padding:10px;margin-top:8px;width:100%">닫기</button>
+    </div>
+</div>
+
 <!-- 정지 화면 -->
 <div class="screen" id="scr-banned" style="align-items:center;justify-content:center;gap:16px;text-align:center">
     <div style="font-size:64px">🚫</div>
@@ -941,6 +1049,7 @@ const BASE_FRUITS = [
     { name:'사과',   emoji:'🍎', price:100, rate:5.0, rarity:'희귀' },
     { name:'복숭아', emoji:'🍑', price:150, rate:3.0, rarity:'희귀' },
     { name:'멜론',   emoji:'🍈', price:120, rate:4.0, rarity:'희귀' },
+    { name:'망고',   emoji:'🥭', price:130, rate:3.5, rarity:'희귀' },
     { name:'딸기', emoji:'🍓', price:400, rate:1.0, rarity:'영웅' },
     { name:'수박', emoji:'🍉', price:500, rate:0.7, rarity:'영웅' },
     { name:'키위', emoji:'🥝', price:450, rate:0.8, rarity:'영웅' },
@@ -950,9 +1059,10 @@ const BASE_FRUITS = [
     { name:'레몬', emoji:'🍋', price:200000,    rate:0.001,    rarity:'신화' },
     { name:'할머니가 숨겨둔 감', emoji:'🍅', price:10000000,  rate:0.00005,  rarity:'불멸' },
     { name:'별혼과', emoji:'🌟', price:1000000000, rate:0.000001, rarity:'비밀' },
-    { name:'개척자의 열매', emoji:'🌱🏆', price:0, rate:0, rarity:'비밀' },
+    { name:'개척자의 열매', emoji:'🌱🏆', price:0, rate:0, rarity:'리미티드' },
+    { name:'축복의 복숭아', emoji:'🍑', price:0, rate:0, rarity:'리미티드' },
 ];
-const NO_SELL_FRUITS = ['개척자의 열매']; // 판매 불가 (거래만 가능)
+const NO_SELL_FRUITS = ['개척자의 열매', '축복의 복숭아']; // 판매 불가 (거래만 가능)
 const PIONEER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 115" style="width:1em;height:1.15em;vertical-align:-0.1em;display:inline-block">
   <path d="M31,28 Q10,35 12,54 Q14,67 31,62" fill="none" stroke="#8B6010" stroke-width="9" stroke-linecap="round"/>
   <path d="M31,28 Q10,35 12,54 Q14,67 31,62" fill="none" stroke="#FFD700" stroke-width="6" stroke-linecap="round"/>
@@ -986,8 +1096,54 @@ const PIONEER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 11
   <circle cx="90" cy="50" r="1.8" fill="#FFE066" opacity="0.6"/>
   <circle cx="8" cy="46" r="1.8" fill="#FFE066" opacity="0.6"/>
 </svg>`;
+// 축복의 복숭아 SVG 일러스트
+const BLESSED_PEACH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 115" style="width:1em;height:1.15em;vertical-align:-0.1em;display:inline-block">
+  <circle cx="50" cy="62" r="41" fill="none" stroke="#FFD700" stroke-width="1" opacity="0.4" stroke-dasharray="5 3"/>
+  <circle cx="50" cy="62" r="33" fill="none" stroke="#FFAA00" stroke-width="0.7" opacity="0.28" stroke-dasharray="3 5"/>
+  <path d="M50,22 C28,22 14,38 14,57 C14,76 28,94 50,97 C72,94 86,76 86,57 C86,38 72,22 50,22 Z" fill="#FF8855"/>
+  <path d="M50,22 C64,22 77,35 80,51 C77,71 65,90 50,94 C55,90 67,74 68,57 C69,44 63,29 50,22 Z" fill="#FFAA77"/>
+  <path d="M50,22 C44,27 44,35 50,38 C56,35 56,27 50,22 Z" fill="#DD6633"/>
+  <ellipse cx="36" cy="42" rx="10" ry="7" fill="white" opacity="0.18" transform="rotate(-15 36 42)"/>
+  <line x1="50" y1="22" x2="54" y2="8" stroke="#5D4037" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M54,11 C63,4 76,8 72,20 C69,27 57,23 54,11 Z" fill="#2E7D32"/>
+  <path d="M54,11 C63,4 75,8 72,20 C69,26 58,23 54,11 Z" fill="#4CAF50"/>
+  <line x1="54" y1="11" x2="68" y2="18" stroke="#1B5E20" stroke-width="0.8" stroke-linecap="round"/>
+  <circle cx="50" cy="62" r="11" fill="none" stroke="#FFD700" stroke-width="1.3" opacity="0.65"/>
+  <text x="50" y="67" text-anchor="middle" font-size="13" fill="#FFD700" font-weight="bold">✦</text>
+  <circle cx="22" cy="50" r="1.8" fill="#FFD700" opacity="0.55"/>
+  <circle cx="78" cy="54" r="1.5" fill="#FFD700" opacity="0.5"/>
+  <circle cx="28" cy="78" r="1.5" fill="#FFD700" opacity="0.45"/>
+  <circle cx="72" cy="76" r="1.8" fill="#FFD700" opacity="0.55"/>
+  <circle cx="50" cy="28" r="1.4" fill="#FFD700" opacity="0.5"/>
+</svg>`;
+
+// 박(조롱박) SVG
+const GOURD_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 130" width="96" height="125">
+  <line x1="50" y1="14" x2="54" y2="3" stroke="#5D4037" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M54,7 C62,1 74,5 70,16 C67,22 55,19 54,7 Z" fill="#4CAF50"/>
+  <path d="M50,14 C42,7 33,5 30,12 C28,18 36,22 50,18 Z" fill="#66BB6A"/>
+  <ellipse cx="50" cy="38" rx="24" ry="22" fill="#C8A870"/>
+  <ellipse cx="50" cy="38" rx="22" ry="20" fill="#D4B87E"/>
+  <path d="M30,38 Q50,50 70,38" fill="none" stroke="#B8944A" stroke-width="1" opacity="0.4"/>
+  <ellipse cx="42" cy="29" rx="8" ry="5.5" fill="white" opacity="0.15" transform="rotate(-15 42 29)"/>
+  <rect x="43" y="57" width="14" height="9" rx="3" fill="#B8944A"/>
+  <rect x="44" y="58" width="12" height="7" rx="2" fill="#C8A860"/>
+  <ellipse cx="50" cy="91" rx="30" ry="31" fill="#C8A870"/>
+  <ellipse cx="50" cy="91" rx="28" ry="29" fill="#D4B87E"/>
+  <path d="M50,62 C50,74 50,108 50,120" stroke="#B8944A" stroke-width="1.5" opacity="0.45"/>
+  <path d="M36,64 C34,76 34,107 37,119" stroke="#B8944A" stroke-width="1" opacity="0.3"/>
+  <path d="M64,64 C66,76 66,107 63,119" stroke="#B8944A" stroke-width="1" opacity="0.3"/>
+  <ellipse cx="38" cy="77" rx="10" ry="7" fill="white" opacity="0.15" transform="rotate(-10 38 77)"/>
+  <ellipse cx="50" cy="120" rx="11" ry="4.5" fill="#9A7230"/>
+</svg>`;
+
 const GOLD = '황금 ';
 const DIA  = '다이아몬드 ';
+// ── 이벤트 날짜 (게임 출시 1달 후부터 이벤트 활성화) ──────────────
+const GAME_CREATED_TS = new Date('2026-05-13').getTime();
+const EVENT_OPEN_TS   = GAME_CREATED_TS + 30 * 24 * 60 * 60 * 1000;
+const GOURD_TARGET    = 10000;
+
 const JUICE_PRICE       = 5000;
 const TITLE_GABBU_PRICE = 1000000;
 const TITLE_ELON_PRICE  = 100000000;
@@ -1007,6 +1163,7 @@ const RARITY = {
     '신화': { label:'신화', en:'MYTHIC',    color:'#ef5350', badgeBg:'#5a0000', cardClass:'rarity-myth',      unreleased:false, startPrice:200000   },
     '불멸': { label:'불멸', en:'IMMORTAL',  color:'#7a0000', badgeBg:'#220000', cardClass:'rarity-immortal',  unreleased:false, startPrice:10000000  },
     '비밀': { label:'비밀', en:'SECRET',    color:'#fff',    badgeBg:'#222',    cardClass:'rarity-secret',    unreleased:false, startPrice:1000000000},
+    '리미티드': { label:'리미티드', en:'LIMITED', color:'#ff69b4', badgeBg:'#3a0030', cardClass:'rarity-limited', unreleased:false, startPrice:0 },
     '신성': { label:'신성', en:'DIVINE',    color:'#ff88ff', badgeBg:'#220022', cardClass:'rarity-divine',    unreleased:true,  startPrice:2500000000},
 };
 // 등급별 드롭 확률 (이 확률로 등급 결정 → 그 등급 내에서 랜덤 과일 선택)
@@ -1050,9 +1207,11 @@ const G = {
     nickname:'', gold:0, day:1, clickCount:0,
     equippedFruit:null, activeBackground:'normal',
     juicePurchased:false,
+    weeklyDropBonus:1, weeklyBonusDetail:null, weeklyBonusWeek:'',
     bluePotionCount:0, redPotionCount:0, purplePotionCount:0, blackPotionCount:0,
     bluePotionUntil:0, redPotionPending:0, purplePotionUntil:0, blackPotionUntil:0,
     blackPotionBoughtToday:0, blackPotionLastBuyDate:'',
+    gourdClickCount:0, gourdRewardClaimed:false,
     ownedTitles:[], equippedTitle:null,
     lastDate:new Date().toDateString(),
     emoji:{...cat.emoji}, prices:{...cat.prices},
@@ -1079,11 +1238,13 @@ const G = {
             sellOrders:this.sellOrders, buyOrders:this.buyOrders,
             priceHistory:this.priceHistory,
             friends:this.friends, pendingRequests:this.pendingRequests, tradeOffers:this.tradeOffers,
+            weeklyDropBonus:this.weeklyDropBonus, weeklyBonusDetail:this.weeklyBonusDetail, weeklyBonusWeek:this.weeklyBonusWeek,
+            gourdClickCount:this.gourdClickCount, gourdRewardClaimed:this.gourdRewardClaimed,
             saveVersion: SAVE_VERSION,
         }));
         if (FB && this.nickname) {
             FB.set(`inv/${encN(this.nickname)}`, this.inventory);
-            FB.set(`ranking/${encN(this.nickname)}`, { nick: this.nickname, gold: this.gold, ts: Date.now() });
+            FB.set(`ranking/${encN(this.nickname)}`, { nick: this.nickname, gold: this.gold, clicks: this.clickCount, ts: Date.now() });
         }
     },
     load() {
@@ -1121,6 +1282,11 @@ const G = {
         this.purplePotionUntil = d.purplePotionRemaining > 0 ? Date.now() + d.purplePotionRemaining : 0;
         this.blackPotionUntil  = d.blackPotionRemaining  > 0 ? Date.now() + d.blackPotionRemaining  : 0;
         this.redPotionPending = d.redPotionPending || 0;
+        this.weeklyDropBonus   = d.weeklyDropBonus   || 1;
+        this.weeklyBonusDetail = d.weeklyBonusDetail || null;
+        this.weeklyBonusWeek   = d.weeklyBonusWeek   || '';
+        this.gourdClickCount   = d.gourdClickCount   || 0;
+        this.gourdRewardClaimed = d.gourdRewardClaimed || false;
     },
     processPendingOrders() {
         const now = Date.now();
@@ -1230,10 +1396,11 @@ const G = {
 
     tryGetFruit() {
         // 1. 등급 추첨 (등급별 확률)
-        const mult = this.eqBase==='딸기'           ? 1.1
+        const equippedMult = this.eqBase==='딸기'           ? 1.1
                : this.eqBase==='코코넛'         ? 2
                : this.eqBase==='할머니가 숨겨둔 감' ? 2.5
                : this.eqBase==='별혼과'          ? 1.5 : 1;
+        const mult = equippedMult * (this.weeklyDropBonus || 1);
         const rarityRates = Object.entries(RARITY_RATES).map(([rarity, rate]) => [rarity, rate * mult]);
 
         if (this.isBluePotionActive) {
@@ -1429,6 +1596,8 @@ async function processMailbox() {
         else if(m.type==='friend_accept'){if(!G.friends.includes(m.from)){G.friends.push(m.from);changed=true;}}
         else if(m.type==='trade')    {G.tradeOffers.push(m);changed=true;}
         else if(m.type==='trade_return'){G.gold+=m.gold||0;for(const[f,c]of Object.entries(m.items||{}))G.addFruit(f,c);changed=true;}
+        else if(m.type==='auction_refund'){G.gold+=m.amount||0;changed=true;toast(`🔔 경매 환불: ${(m.amount||0).toLocaleString()}G (${m.fruit||''} 최고입찰자 변경)`);}
+        else if(m.type==='auction_won'){G.addFruit(m.fruit,1);changed=true;toast(`🎉 경매 낙찰! ${G.emoji[m.fruit]||''}${m.fruit} 획득!`);}
     }
     if(changed){G.save();updateFriendBadge();refreshMain();}
 }
@@ -1443,11 +1612,11 @@ async function sendFriendRequest(toNick) {
     await pushMsg(toNick,{type:'friend_req',from:G.nickname});
     alert(`'${toNick}'에게 친구요청을 보냈습니다!`);
 }
-async function acceptFriend(fromNick) {
+function acceptFriend(fromNick) {
     if(!G.friends.includes(fromNick)) G.friends.push(fromNick);
     G.pendingRequests=G.pendingRequests.filter(n=>n!==fromNick);
-    await pushMsg(fromNick,{type:'friend_accept',from:G.nickname});
     G.save(); renderFriends(); updateFriendBadge();
+    pushMsg(fromNick,{type:'friend_accept',from:G.nickname});
 }
 function rejectFriend(fromNick) {
     G.pendingRequests=G.pendingRequests.filter(n=>n!==fromNick);
@@ -1499,14 +1668,16 @@ async function acceptTrade(offer) {
         G.inventory[key] = Math.max(0,(G.inventory[key]||0)-Number(c));
         returnItems[key] = Number(c);
     }
-    await pushMsg(offer.from,{type:'trade_return',from:G.nickname,items:returnItems,gold:wantGold});
+    // 즉시 상태/UI 업데이트 (네트워크 대기 없이)
     G.tradeOffers=G.tradeOffers.filter(o=>o.ts!==offer.ts);
     G.save(); refreshMain(); renderFriends(); updateFriendBadge();
+    // 네트워크는 백그라운드에서 처리
+    pushMsg(offer.from,{type:'trade_return',from:G.nickname,items:returnItems,gold:wantGold});
 }
-async function rejectTrade(offer) {
-    await pushMsg(offer.from,{type:'trade_return',from:G.nickname,items:offer.items,gold:offer.gold});
+function rejectTrade(offer) {
     G.tradeOffers=G.tradeOffers.filter(o=>o.ts!==offer.ts);
     G.save(); renderFriends(); updateFriendBadge();
+    pushMsg(offer.from,{type:'trade_return',from:G.nickname,items:offer.items,gold:offer.gold});
 }
 
 function renderFriends() {
@@ -1595,18 +1766,25 @@ function renderFriends() {
 
     // 이벤트 바인딩
     el.querySelectorAll('.tf-accept').forEach(b => b.onclick = () => {
+        b.disabled = true;
         const offer = G.tradeOffers.find(o => o.ts == b.dataset.ts);
-        if (offer) { acceptTrade(offer); renderFriends(); }
+        if (offer) acceptTrade(offer);
     });
     el.querySelectorAll('.tf-reject').forEach(b => b.onclick = () => {
+        b.disabled = true;
         const offer = G.tradeOffers.find(o => o.ts == b.dataset.ts);
-        if (offer) { rejectTrade(offer); renderFriends(); }
+        if (offer) rejectTrade(offer);
     });
-    el.querySelectorAll('.fr-accept').forEach(b => b.onclick = () => { acceptFriend(b.dataset.nick); renderFriends(); });
-    el.querySelectorAll('.fr-reject').forEach(b => b.onclick = () => { rejectFriend(b.dataset.nick); renderFriends(); });
+    el.querySelectorAll('.fr-accept').forEach(b => b.onclick = () => { b.disabled = true; acceptFriend(b.dataset.nick); });
+    el.querySelectorAll('.fr-reject').forEach(b => b.onclick = () => { b.disabled = true; rejectFriend(b.dataset.nick); });
     el.querySelectorAll('.fl-trade').forEach(b => b.onclick = () => { closeModal('modal-friends'); openTradeModal(b.dataset.nick); });
     el.querySelectorAll('.fl-remove').forEach(b => b.onclick = () => { if(confirm(`'${b.dataset.nick}'을(를) 친구 목록에서 삭제할까요?`)) { removeFriend(b.dataset.nick); renderFriends(); } });
-    $('btn-send-freq').onclick = () => { sendFriendRequest($('inp-friend-nick').value.trim()); };
+    const freqBtn = $('btn-send-freq');
+    freqBtn.onclick = async () => {
+        freqBtn.disabled = true;
+        await sendFriendRequest($('inp-friend-nick').value.trim());
+        freqBtn.disabled = false;
+    };
 }
 
 // ── 거래 모달 ─────────────────────────────────────────────────
@@ -1629,6 +1807,7 @@ async function openTradeModal(toNick) {
         </div>`;
 
     const render = () => {
+        const scrollTop = el.firstElementChild?.scrollTop ?? 0;
         const offerSummary = Object.entries(state.offerItems).filter(([,c])=>c>0).map(([f,c])=>`${G.emoji[f]||f}×${c}`).join(' ') || '없음';
         const wantSummary  = Object.entries(state.wantItems).filter(([,c])=>c>0).map(([f,c])=>`${G.emoji[f]||f}×${c}`).join(' ')  || '없음';
 
@@ -1678,6 +1857,7 @@ async function openTradeModal(toNick) {
         <button class="btn" id="btn-do-trade"
             style="width:100%;background:#cc4400;color:#fff;font-size:14px;padding:10px;margin-top:8px">거래 요청 보내기</button>`;
         el.innerHTML = html;
+        if (el.firstElementChild) el.firstElementChild.scrollTop = scrollTop;
 
         el.querySelectorAll('.to-p').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.offerItems[n]=Math.min((state.offerItems[n]||0)+1,(G.inventory[n]||0)); syncGold(); render(); });
         el.querySelectorAll('.to-m').forEach(b=>b.onclick=()=>{ const n=b.dataset.n; state.offerItems[n]=Math.max((state.offerItems[n]||0)-1,0); syncGold(); render(); });
@@ -1818,6 +1998,7 @@ function showDrop(fruit, count, upgraded=0) {
 
 function emojiHtml(fruit) {
     if (G.base(fruit) === '개척자의 열매') return PIONEER_SVG;
+    if (G.base(fruit) === '축복의 복숭아') return BLESSED_PEACH_SVG;
     const e = G.emoji[fruit] || (typeof fruit === 'string' ? fruit : '');
     const bf = BASE_FRUITS.find(f => f.name === G.base(fruit));
     if (G.isDia(fruit))  return `<span class="diamond">${e}</span>`;
@@ -1934,6 +2115,28 @@ function refreshMain() {
     const purpleText = G.isPurplePotionActive  ? ` | 🟣 퍼플 포션 ${Math.floor(purpleRemainSec / 60)}:${String(purpleRemainSec % 60).padStart(2, '0')}` : '';
     const blackText  = G.isBlackPotionActive   ? ` | 🖤 블랙 포션 ${Math.floor(blackRemainSec / 60)}:${String(blackRemainSec % 60).padStart(2, '0')}` : '';
     $('lbl-clicks').textContent += `${blueText}${redText}${purpleText}${blackText}`;
+
+    // 주간 랭킹 보너스 배지
+    let bonusBadge = $('lbl-weekly-bonus');
+    if (!bonusBadge) {
+        bonusBadge = document.createElement('div');
+        bonusBadge.id = 'lbl-weekly-bonus';
+        bonusBadge.style.cssText = 'margin-top:4px';
+        $('lbl-clicks').insertAdjacentElement('afterend', bonusBadge);
+    }
+    if (G.weeklyDropBonus > 1 && G.weeklyBonusDetail) {
+        const d = G.weeklyBonusDetail;
+        const parts = [];
+        if (d.goldRank)  parts.push(`💰${d.goldRank}위`);
+        if (d.clickRank) parts.push(`👆${d.clickRank}위`);
+        bonusBadge.innerHTML = `<span style="display:inline-block;background:linear-gradient(90deg,#3a1a00,#4a2a00);border:1px solid #ffd700;border-radius:8px;padding:3px 10px;font-size:12px;color:#ffd700;font-weight:bold">🏆 주간보너스 드롭률 ${G.weeklyDropBonus.toFixed(1)}배 (${parts.join(' · ')})</span>`;
+    } else {
+        bonusBadge.innerHTML = '';
+    }
+
+    // 이벤트 버튼
+    const evBtn = $('btn-event-open');
+    if (evBtn) evBtn.style.display = Date.now() >= EVENT_OPEN_TS ? '' : 'none';
 
     // 칭호 표시
     const titleEl = $('lbl-title');
@@ -2115,9 +2318,14 @@ function renderDetail(baseName) {
                  : '효과 없음';
 
     const box = document.querySelector('#modal-detail .modal-box');
-    box.className = r.cardClass === 'rarity-divine' ? 'modal-box divine-border' : 'modal-box';
+    const isLimitedGrade = r.cardClass === 'rarity-limited';
+    box.className = r.cardClass === 'rarity-divine'  ? 'modal-box divine-border'
+                  : isLimitedGrade                   ? 'modal-box limited-border'
+                  : 'modal-box';
     box.style.cssText = r.cardClass === 'rarity-divine'
         ? 'text-align:center;border:2px solid #ff0000;'
+        : isLimitedGrade
+        ? 'text-align:center;border:2px solid #ff69b4;'
         : `text-align:center;border:2px solid ${r.color};box-shadow:0 0 18px ${r.color}55,0 0 50px ${r.color}18;`;
 
     const mainDisplay = f.name === '별혼과' ? `
@@ -2144,14 +2352,24 @@ function renderDetail(baseName) {
                 <span class="star-soul">🌟</span>
             </div>
         </div>` :
+        f.name === '축복의 복숭아' ?
+        `<div style="font-size:96px;line-height:1;margin-bottom:10px;animation:blessedPeachFloat 3s ease-in-out infinite">${emojiHtml(f.name)}</div>` :
         `<div style="font-size:96px;line-height:1;margin-bottom:10px">${emojiHtml(f.name)}</div>`;
+
+    const limitedDesc = f.name === '개척자의 열매'
+        ? '초기 개척자 50인에게 지급'
+        : f.name === '축복의 복숭아'
+        ? '1달 기념 이벤트 — 박 두드리기 보상'
+        : '특별 한정 아이템';
 
     $('detail-content').innerHTML = `
         ${mainDisplay}
         <div style="font-size:26px;font-weight:bold;color:#fff;margin-bottom:10px">${f.name}</div>
-        ${NO_SELL_FRUITS.includes(f.name) ? `
-        <div style="background:rgba(0,0,0,.45);border-radius:10px;padding:14px 18px;font-size:15px;line-height:2;margin-bottom:12px;color:#f4c542">
-            초기 개척자 50인에게 지급 — 판매 불가
+        ${isLimitedGrade ? `
+        <div style="background:rgba(0,0,0,.45);border-radius:10px;padding:14px 18px;font-size:14px;line-height:2;margin-bottom:12px;color:#ff69b4">
+            ${limitedDesc}<br>
+            <span style="color:#ffd700;font-weight:bold">판매 불가 · 거래만 가능</span><br>
+            <span style="font-size:12px;color:#666">시세 없음 · 경매 불가</span>
         </div>` : `
         <div style="background:rgba(0,0,0,.45);border-radius:10px;padding:14px 18px;font-size:15px;line-height:2;margin-bottom:12px">
             <div>기본 시세 &nbsp;<strong style="color:#ffd700">${G.prices[f.name].toLocaleString()} G</strong></div>
@@ -2170,7 +2388,7 @@ function renderDetail(baseName) {
 const expanded = { inv:{}, mkt:{}, equip:{} };
 
 // ── 인벤토리 ─────────────────────────────────────────────────
-const RARITY_ORDER = ['희귀','영웅','전설','신화','불멸','비밀','신성'];
+const RARITY_ORDER = ['희귀','영웅','전설','신화','불멸','비밀','리미티드','신성'];
 
 function renderInv() {
     const list=$('inv-list');
@@ -2263,11 +2481,15 @@ function renderMkt() {
         const isOpen = expanded.mkt[rarityKey];
 
         const header = document.createElement('div');
-        const isDivine_mkt = r.cardClass === 'rarity-divine';
+        const isDivine_mkt  = r.cardClass === 'rarity-divine';
+        const isLimited_mkt = r.cardClass === 'rarity-limited';
         header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#222;cursor:pointer;border-left:3px solid ${r.color}`;
-        if (isDivine_mkt) header.classList.add('divine-left-border');
+        if (isDivine_mkt)  header.classList.add('divine-left-border');
+        if (isLimited_mkt) header.classList.add('limited-left-border');
+        const mktBadgeCls = isDivine_mkt ? ' divine-text' : isLimited_mkt ? ' limited-text' : '';
+        const mktBadgeSt  = (isDivine_mkt || isLimited_mkt) ? '' : ('color:'+r.color+';border:1px solid '+r.color+';');
         header.innerHTML=`
-            <span class="rarity-badge${isDivine_mkt?' divine-text':''}" style="background:${r.badgeBg};${isDivine_mkt?'':('color:'+r.color+';border:1px solid '+r.color+';')}font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
+            <span class="rarity-badge${mktBadgeCls}" style="background:${r.badgeBg};${mktBadgeSt}font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
             <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 과일</span>
             <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'펼치기'}</button>`;
         header.onclick = () => { expanded.mkt[rarityKey]=!isOpen; renderMkt(); };
@@ -2280,6 +2502,15 @@ function renderMkt() {
             msg.style.cssText='margin-left:12px;margin-bottom:8px;padding:14px;border-radius:6px;background:#1a1a1a;color:#555;text-align:center;font-size:13px';
             msg.textContent='🔒 미출시';
             content.appendChild(msg);
+            continue;
+        }
+
+        // 리미티드: 판매 불가 안내만 표시
+        if (isLimited_mkt) {
+            const lMsg = document.createElement('div');
+            lMsg.style.cssText='margin-left:12px;margin-bottom:8px;padding:14px;border-radius:6px;background:#1e0018;border:1px solid #660033;color:#ff69b4;text-align:center;font-size:13px';
+            lMsg.innerHTML='🔒 판매 불가 · 거래만 가능<br><span style="color:#666;font-size:11px">시세 없음 · 경매 불가</span>';
+            content.appendChild(lMsg);
             continue;
         }
 
@@ -2357,11 +2588,15 @@ function renderEquip() {
         const isOpen = expanded.equip[rarityKey];
 
         const header = document.createElement('div');
-        const isDivine_eq = r.cardClass === 'rarity-divine';
+        const isDivine_eq  = r.cardClass === 'rarity-divine';
+        const isLimited_eq = r.cardClass === 'rarity-limited';
         header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#1a1a1a;cursor:pointer;border-left:3px solid ${r.color}`;
-        if (isDivine_eq) header.classList.add('divine-left-border');
+        if (isDivine_eq)  header.classList.add('divine-left-border');
+        if (isLimited_eq) header.classList.add('limited-left-border');
+        const eqBadgeCls = isDivine_eq ? ' divine-text' : isLimited_eq ? ' limited-text' : '';
+        const eqBadgeSt  = (isDivine_eq || isLimited_eq) ? '' : ('color:'+r.color+';border:1px solid '+r.color+';');
         header.innerHTML=`
-            <span class="rarity-badge${isDivine_eq?' divine-text':''}" style="background:${r.badgeBg};${isDivine_eq?'':('color:'+r.color+';border:1px solid '+r.color+';')}font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
+            <span class="rarity-badge${eqBadgeCls}" style="background:${r.badgeBg};${eqBadgeSt}font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
             <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 과일</span>
             <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'펼치기'}</button>`;
         header.onclick = ()=>{ expanded.equip[rarityKey]=!isOpen; renderEquip(); };
@@ -2608,8 +2843,37 @@ function randCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     return Array.from({length:8}, ()=>chars[Math.floor(Math.random()*chars.length)]).join('');
 }
-$('btn-sync').onclick = ()=>{ $('save-code-out').style.display='none'; $('inp-save-code').value=''; openModal('modal-sync'); };
+$('btn-sync').onclick = ()=>{
+    $('save-code-out').style.display='none';
+    $('inp-save-code').value='';
+    // 백업 데이터가 있으면 복구 버튼 표시
+    const backupRaw = localStorage.getItem('fruitFarm4_backup');
+    const backupTs  = localStorage.getItem('fruitFarm4_backup_ts');
+    if (backupRaw) {
+        try {
+            const bk = JSON.parse(backupRaw);
+            const elapsed = backupTs ? Math.round((Date.now() - Number(backupTs)) / 60000) : '?';
+            $('sync-backup-info').textContent = `${bk.nickname} (골드 ${(bk.gold||0).toLocaleString()}G) — ${elapsed}분 전 백업`;
+            $('sync-backup-box').style.display = 'block';
+        } catch { $('sync-backup-box').style.display = 'none'; }
+    } else {
+        $('sync-backup-box').style.display = 'none';
+    }
+    openModal('modal-sync');
+};
 $('btn-sync-close').onclick = ()=> closeModal('modal-sync');
+$('btn-restore-backup').onclick = ()=>{
+    const backupRaw = localStorage.getItem('fruitFarm4_backup');
+    if (!backupRaw) { toast('백업 데이터가 없습니다'); return; }
+    try {
+        const bk = JSON.parse(backupRaw);
+        if (!confirm(`"${bk.nickname}" 계정으로 되돌릴까요?\n현재 데이터는 사라집니다.`)) return;
+        localStorage.setItem('fruitFarm4', backupRaw);
+        localStorage.removeItem('fruitFarm4_backup');
+        localStorage.removeItem('fruitFarm4_backup_ts');
+        location.reload();
+    } catch { toast('복구 실패'); }
+};
 
 $('btn-gen-save-code').onclick = async ()=>{
     const btn = $('btn-gen-save-code');
@@ -2641,13 +2905,24 @@ $('btn-load-save-code').onclick = async ()=>{
         if (!res.ok) throw new Error('fetch fail');
         const data = await res.json();
         if (!data || data === 'null') { toast('코드를 찾을 수 없습니다'); btn.textContent='📥 이 코드로 불러오기'; btn.disabled=false; return; }
-        if (!confirm(`"${data.nickname}" 의 세이브를 불러오면\n현재 데이터가 덮어씌워집니다.\n계속할까요?`)) { btn.textContent='📥 이 코드로 불러오기'; btn.disabled=false; return; }
+        // 현재 내 계정 정보 표시
+        const currentSave = JSON.parse(localStorage.getItem('fruitFarm4') || 'null');
+        const currentInfo = currentSave ? `현재 내 계정: ${currentSave.nickname} (골드 ${(currentSave.gold||0).toLocaleString()}G)` : '현재 저장된 데이터 없음';
+        const incomingGold = (data.gold || 0).toLocaleString();
+        if (!confirm(`⚠️ 정말 데이터를 덮어씌울까요?\n\n${currentInfo}\n  ↓ 이 데이터가 지워집니다\n\n불러올 계정: ${data.nickname} (골드 ${incomingGold}G)\n\n※ 코드는 1회용이므로 로드 후 삭제됩니다`)) {
+            btn.textContent='📥 이 코드로 불러오기'; btn.disabled=false; return;
+        }
+        // 덮어쓰기 전에 현재 데이터 백업
+        if (currentSave) {
+            localStorage.setItem('fruitFarm4_backup', JSON.stringify(currentSave));
+            localStorage.setItem('fruitFarm4_backup_ts', String(Date.now()));
+        }
         delete data._savedAt;
         localStorage.setItem('fruitFarm4', JSON.stringify(data));
         // 사용된 연동코드는 즉시 삭제 (1회용)
         try { await fetch(`${FIREBASE_URL}/saves/${code}.json`, { method: 'DELETE' }); } catch {}
         // 이 기기의 세션 ID를 불러온 닉네임의 소유자로 등록 (실패해도 진행)
-        try { await registerNickname(data.nickname); } catch {} // 세션 등록 (기존 기기 로그아웃 유도)
+        try { await registerNickname(data.nickname); } catch {}
         location.reload();
     } catch(e) { toast('불러오기 실패. 인터넷 연결 확인'); btn.textContent='📥 이 코드로 불러오기'; btn.disabled=false; }
 };
@@ -2667,7 +2942,7 @@ async function startGame() {
     if (localStorage.getItem('fruitFarm4_kicked')) {
         localStorage.removeItem('fruitFarm4_kicked');
         show('scr-nick');
-        setInterval(()=>{ if(G.checkDay()){G.save();refreshMain();} }, 30000);
+        setInterval(()=>{ if(G.checkDay()){G.save();refreshMain();resolveAuctions(getAuctionDate(-1));runWeeklySettlement();} }, 30000);
         setInterval(()=>{ processMailbox(); updateFriendBadge(); }, 5000);
         setInterval(checkActiveSession, 20000);
         return;
@@ -2691,11 +2966,12 @@ async function startGame() {
         await showAdminButtons();
         if (G.isBlackPotionActive) startBlackPotionTimer();
         // 접속 시 즉시 랭킹 데이터 업로드 (기존 유저 포함)
-        if (FB) FB.set(`ranking/${encN(G.nickname)}`, { nick: G.nickname, gold: G.gold, ts: Date.now() });
+        if (FB) FB.set(`ranking/${encN(G.nickname)}`, { nick: G.nickname, gold: G.gold, clicks: G.clickCount, ts: Date.now() });
+        runWeeklySettlement();
     } else {
         show('scr-start');
     }
-    setInterval(()=>{ if(G.checkDay()){G.save();refreshMain();} }, 30000);
+    setInterval(()=>{ if(G.checkDay()){G.save();refreshMain();resolveAuctions(getAuctionDate(-1));runWeeklySettlement();} }, 30000);
     setInterval(()=>{ processMailbox(); updateFriendBadge(); }, 5000);
     setInterval(checkActiveSession, 20000); // 20초마다 세션 확인
     // 30초마다 정지 여부 재확인
@@ -2990,43 +3266,324 @@ $('btn-revoke-do').onclick = async () => {
     renderAdminGrantList();
 };
 
-// ── 골드 랭킹 ─────────────────────────────────────────────────
-const RANK_MEDALS = ['🥇','🥈','🥉'];
+// ── 주간 랭킹 보너스 ──────────────────────────────────────────
+// 서버 타임스탬프를 Firebase에서 직접 가져옴 (기기 시계 변조 방지)
+async function getServerTime() {
+    if (!FB) return Date.now();
+    try {
+        const res = await fbFetch(`${FIREBASE_URL}/ff/serverTime.json`, {
+            method: 'PUT',
+            body: JSON.stringify({ '.sv': 'timestamp' })
+        });
+        const ts = await res.json();
+        return typeof ts === 'number' ? ts : Date.now();
+    } catch { return Date.now(); }
+}
 
-async function renderRanking() {
+function weekKeyFromTs(ts) {
+    return 'W' + Math.floor(ts / (7 * 24 * 3600 * 1000));
+}
+
+const WEEKLY_RANK_BONUSES = [0.3, 0.2, 0.1]; // 1위,2위,3위 보너스 (추가 배율)
+
+async function runWeeklySettlement() {
+    if (!FB || !G.nickname) return;
+
+    // 서버 시각 기준 주차 계산 (기기 날짜 변조 무력화)
+    const serverTs   = await getServerTime();
+    const currentWeek = weekKeyFromTs(serverTs);
+
+    // 이미 이번 주 보너스를 갖고 있으면 스킵
+    if (G.weeklyBonusWeek === currentWeek) return;
+
+    // Firebase에서 이번 주 정산 여부 확인
+    const settled = await FB.get('weeklySettle');
+    if (settled?.week !== currentWeek) {
+        // 정산 실행 (먼저 접속한 사람이 수행)
+        await FB.set('weeklySettle', { week: currentWeek, settledAt: serverTs, by: G.nickname });
+
+        const rankData = await FB.get('ranking');
+        if (rankData) {
+            const entries = Object.values(rankData).filter(d => d.nick && d.nick !== '관리자');
+            const goldTop3  = [...entries].sort((a,b) => b.gold   - a.gold  ).slice(0,3);
+            const clickTop3 = [...entries].filter(d => (d.clicks||0) > 0)
+                                          .sort((a,b) => b.clicks - a.clicks).slice(0,3);
+
+            const bonusMap = {};
+            const add = (nick, key, val, rank) => {
+                if (!bonusMap[nick]) bonusMap[nick] = { goldBonus:0, clickBonus:0, goldRank:null, clickRank:null };
+                bonusMap[nick][key]  = val;
+                bonusMap[nick][key.replace('Bonus','Rank')] = rank;
+            };
+            goldTop3.forEach( (e,i) => add(e.nick, 'goldBonus',  WEEKLY_RANK_BONUSES[i], i+1));
+            clickTop3.forEach((e,i) => add(e.nick, 'clickBonus', WEEKLY_RANK_BONUSES[i], i+1));
+
+            for (const [nick, b] of Object.entries(bonusMap)) {
+                await FB.set(`weeklyBonus/${encN(nick)}`, {
+                    multiplier: 1 + b.goldBonus + b.clickBonus,
+                    goldBonus: b.goldBonus, goldRank: b.goldRank,
+                    clickBonus: b.clickBonus, clickRank: b.clickRank,
+                    week: currentWeek, grantedAt: serverTs
+                });
+            }
+        }
+    }
+
+    // 내 보너스 불러오기
+    const myBonus = await FB.get(`weeklyBonus/${encN(G.nickname)}`);
+    if (myBonus && myBonus.week === currentWeek) {
+        G.weeklyDropBonus   = myBonus.multiplier || 1;
+        G.weeklyBonusDetail = myBonus;
+    } else {
+        G.weeklyDropBonus   = 1;
+        G.weeklyBonusDetail = null;
+    }
+    G.weeklyBonusWeek = currentWeek;
+    G.save(); refreshMain();
+
+    if (G.weeklyDropBonus > 1) {
+        const d = G.weeklyBonusDetail;
+        const lines = [];
+        if (d.goldRank)  lines.push(`💰 골드 ${d.goldRank}위 (+${Math.round(d.goldBonus*100)}%)`);
+        if (d.clickRank) lines.push(`👆 클릭 ${d.clickRank}위 (+${Math.round(d.clickBonus*100)}%)`);
+        toast(`🏆 주간 랭킹 보너스! 드롭률 ${G.weeklyDropBonus.toFixed(1)}배\n${lines.join(' / ')}`);
+    }
+}
+
+// ── 경매장 ────────────────────────────────────────────────────
+const AUCTION_ELIGIBLE = [];
+for (const f of BASE_FRUITS) {
+    if (['영웅','전설','신화','불멸'].includes(f.rarity) && f.price > 0) {
+        AUCTION_ELIGIBLE.push(f.name);
+        AUCTION_ELIGIBLE.push(GOLD + f.name);
+        AUCTION_ELIGIBLE.push(DIA  + f.name);
+    }
+}
+
+function getAuctionDate(offsetDays = 0) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getDailyAuctionItems(dateStr) {
+    const dateSeed = dateStr.split('-').reduce((a, n, i) => (a + Number(n) * (i+1) * 31) | 0, 7);
+    const pool = [...AUCTION_ELIGIBLE];
+    let s = (dateSeed >>> 0);
+    s = Math.imul(s, 1664525) + 1013904223 >>> 0;
+    return [pool[s % pool.length]];
+}
+
+async function resolveAuctions(dateStr) {
+    if (!FB || !G.nickname) return;
+    const data = await FB.get(`auction/${dateStr}`);
+    if (!data) return;
+    for (const [slot, item] of Object.entries(data)) {
+        if (!item || item.resolved) continue;
+        if (item.topBidder === G.nickname) {
+            await FB.set(`auction/${dateStr}/${slot}/resolved`, true);
+            G.addFruit(item.fruit, 1);
+            toast(`🎉 경매 낙찰! ${G.emoji[item.fruit]||''}${item.fruit} 획득! (${(item.topBid||0).toLocaleString()}G)`);
+            G.save(); refreshMain();
+        }
+    }
+}
+
+async function placeBid(dateStr, slot, fruitName, inputAmount) {
+    if (!FB) { toast('Firebase 연결이 필요합니다'); return false; }
+    const amount = Math.floor(Number(inputAmount));
+    if (!amount || amount <= 0) { toast('올바른 금액을 입력하세요'); return false; }
+
+    const current = await FB.get(`auction/${dateStr}/${slot}`);
+    if (current?.resolved) { toast('이미 종료된 경매입니다'); return false; }
+
+    const rawName   = fruitName.startsWith(DIA) ? fruitName.slice(DIA.length) : fruitName.startsWith(GOLD) ? fruitName.slice(GOLD.length) : fruitName;
+    const baseFruit = BASE_FRUITS.find(f => f.name === rawName);
+    const fixedBase = baseFruit ? baseFruit.price : 1;
+    const basePrice = fruitName.startsWith(DIA) ? fixedBase * 25 : fruitName.startsWith(GOLD) ? fixedBase * 10 : fixedBase;
+    const minBid = current?.topBid > 0 ? current.topBid + 1 : basePrice;
+
+    if (amount < minBid) { toast(`최소 ${minBid.toLocaleString()}G 이상이어야 합니다`); return false; }
+    if (G.gold < amount) { toast('골드가 부족합니다'); return false; }
+
+    // 기존 내 입찰이 있으면 환불
+    if (current?.topBidder === G.nickname && current.topBid > 0) {
+        G.gold += current.topBid;
+    }
+    // 다른 사람이 최고입찰자였으면 환불 메시지
+    else if (current?.topBidder && current.topBid > 0) {
+        pushMsg(current.topBidder, { type:'auction_refund', amount: current.topBid, fruit: fruitName });
+    }
+
+    G.gold -= amount;
+    await FB.set(`auction/${dateStr}/${slot}`, {
+        fruit: fruitName,
+        startPrice: basePrice,
+        topBid: amount,
+        topBidder: G.nickname,
+        topBidTs: Date.now(),
+        resolved: false
+    });
+    G.save();
+    return true;
+}
+
+async function renderAuction() {
+    $('auction-gold-lbl').textContent = `💰 ${G.gold.toLocaleString()} G`;
+    const el = $('auction-content');
+    el.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:24px">불러오는 중...</div>';
+
+    // 어제 낙찰 확인
+    await resolveAuctions(getAuctionDate(-1));
+
+    const today = getAuctionDate(0);
+    const items = getDailyAuctionItems(today);
+    const slotData = await Promise.all(items.map((_, i) => FB ? FB.get(`auction/${today}/${i}`) : null));
+
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const ms = midnight - now;
+    const hh = Math.floor(ms / 3600000);
+    const mm = Math.floor((ms % 3600000) / 60000);
+
+    let html = `<div style="color:#555;font-size:11px;text-align:right;margin-bottom:10px">⏰ 마감까지 ${hh}시간 ${mm}분</div>`;
+
+    for (let i = 0; i < items.length; i++) {
+        const fruit   = items[i];
+        const slot    = slotData[i];
+        const emoji   = G.emoji[fruit] || '❓';
+        const baseName = fruit.startsWith(DIA) ? fruit.slice(DIA.length)
+                       : fruit.startsWith(GOLD) ? fruit.slice(GOLD.length) : fruit;
+        const rarInfo  = getFruitRarity(baseName);
+        const color    = rarInfo?.color || '#eee';
+        const rawName2  = fruit.startsWith(DIA) ? fruit.slice(DIA.length) : fruit.startsWith(GOLD) ? fruit.slice(GOLD.length) : fruit;
+        const baseFruit2= BASE_FRUITS.find(f => f.name === rawName2);
+        const fp        = baseFruit2 ? baseFruit2.price : 0;
+        const startPr   = fruit.startsWith(DIA) ? fp*25 : fruit.startsWith(GOLD) ? fp*10 : fp;
+        const topBid   = slot?.topBid    || 0;
+        const topBidder= slot?.topBidder || null;
+        const resolved = slot?.resolved  || false;
+        const isMe     = topBidder === G.nickname;
+        const minNext  = topBid > 0 ? topBid + 1 : startPr;
+
+        const badgeHtml = fruit.startsWith(DIA)  ? `<span style="font-size:10px;color:#7be8ff;margin-left:4px">다이아</span>`
+                        : fruit.startsWith(GOLD) ? `<span style="font-size:10px;color:#ffd700;margin-left:4px">황금</span>` : '';
+
+        html += `<div style="background:#111;border:1px solid ${isMe?'#5599ff':'#333'};border-radius:12px;padding:14px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+                <span style="font-size:34px;line-height:1">${emoji}</span>
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:14px;font-weight:bold;color:${color}">${fruit}${badgeHtml}</div>
+                    <div style="font-size:11px;color:#444">시작가 ${startPr.toLocaleString()}G</div>
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                    <div style="font-size:11px;color:#888">현재 최고 입찰</div>
+                    <div style="font-size:15px;font-weight:bold;color:${topBid>0?'#ffd700':'#444'}">
+                        ${topBid > 0 ? topBid.toLocaleString()+'G' : '입찰 없음'}
+                    </div>
+                    ${topBidder ? `<div style="font-size:11px;color:${isMe?'#0f0':'#777'}">${isMe?'👑 내가 최고':'👤 '+topBidder}</div>` : ''}
+                </div>
+            </div>
+            ${resolved
+                ? `<div style="text-align:center;color:#444;font-size:12px;padding:6px 0;border-top:1px solid #222">경매 종료</div>`
+                : `<div style="display:flex;gap:8px;margin-top:4px">
+                    <input type="number" class="auc-input" data-slot="${i}" data-fruit="${fruit}" data-min="${minNext}"
+                        placeholder="최소 ${minNext.toLocaleString()}G"
+                        style="flex:1;padding:9px 10px;background:#1a1a1a;color:#fff;border:1px solid #444;border-radius:8px;font-size:13px;font-family:inherit;min-width:0">
+                    <button class="btn auc-bid-btn" data-slot="${i}" data-date="${today}"
+                        style="background:#1a2a3a;color:#7af;font-size:13px;padding:9px 16px;border:1px solid #5599ff;border-radius:8px;white-space:nowrap">
+                        입찰
+                    </button>
+                   </div>`
+            }
+        </div>`;
+    }
+
+    el.innerHTML = html;
+
+    el.querySelectorAll('.auc-bid-btn').forEach(btn => {
+        btn.onclick = async () => {
+            const slotIdx = Number(btn.dataset.slot);
+            const date    = btn.dataset.date;
+            const input   = el.querySelector(`.auc-input[data-slot="${slotIdx}"]`);
+            btn.disabled  = true; btn.textContent = '처리 중...';
+            const ok = await placeBid(date, slotIdx, input.dataset.fruit, input.value);
+            if (ok) renderAuction();
+            else { btn.disabled = false; btn.textContent = '입찰'; }
+        };
+    });
+}
+
+// ── 랭킹 ─────────────────────────────────────────────────────
+const RANK_MEDALS = ['🥇','🥈','🥉'];
+let rankMode = 'gold'; // 'gold' | 'clicks'
+let rankCache = null;
+
+async function renderRanking(mode) {
+    if (mode) rankMode = mode;
+    // 탭 버튼 스타일 갱신
+    $('rank-tab-gold').style.cssText   = `flex:1;font-size:13px;padding:8px 0;border-radius:8px;cursor:pointer;font-weight:bold;` +
+        (rankMode==='gold'   ? 'background:#3a2a00;color:#ffd700;border:1px solid #ffd700'
+                              : 'background:#111;color:#888;border:1px solid #444');
+    $('rank-tab-clicks').style.cssText = `flex:1;font-size:13px;padding:8px 0;border-radius:8px;cursor:pointer;font-weight:bold;` +
+        (rankMode==='clicks' ? 'background:#001a33;color:#7af;border:1px solid #5599ff'
+                              : 'background:#111;color:#888;border:1px solid #444');
+
     const list = $('ranking-list');
-    list.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:20px">불러오는 중...</div>';
-    const [data, adminData] = await Promise.all([
-        FB ? FB.get('ranking') : null,
-        FB ? FB.get('admins') : null
-    ]);
-    if (!data || Object.keys(data).length === 0) {
+    if (!rankCache) {
+        list.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:20px">불러오는 중...</div>';
+        rankCache = FB ? await FB.get('ranking') : null;
+    }
+    if (!rankCache || Object.keys(rankCache).length === 0) {
         list.innerHTML = '<div style="color:#444;font-size:13px;text-align:center;padding:20px">랭킹 데이터 없음</div>';
         return;
     }
-    const adminNicks = new Set(['관리자']);
-    if (adminData) Object.values(adminData).forEach(a => a.nick && adminNicks.add(a.nick));
-    const sorted = Object.values(data)
-        .filter(d => d.nick && typeof d.gold === 'number' && !adminNicks.has(d.nick))
-        .sort((a, b) => b.gold - a.gold)
-        .slice(0, 30);
-    list.innerHTML = '';
-    sorted.forEach((entry, i) => {
-        const rank = i + 1;
-        const medal = RANK_MEDALS[i] || `${rank}`;
-        const isMe = entry.nick === G.nickname;
+
+    const isGold = rankMode === 'gold';
+    const allSorted = Object.values(rankCache)
+        .filter(d => d.nick && d.nick !== '관리자' && typeof d.gold === 'number')
+        .sort((a, b) => isGold ? b.gold - a.gold : (b.clicks||0) - (a.clicks||0));
+
+    const top30 = allSorted.slice(0, 30);
+    const myRank = allSorted.findIndex(d => d.nick === G.nickname) + 1; // 0이면 없음
+    const myEntry = allSorted.find(d => d.nick === G.nickname);
+    const inTop30 = myRank >= 1 && myRank <= 30;
+
+    const makeRow = (entry, rank, isMe) => {
+        const medal = RANK_MEDALS[rank - 1] || `${rank}`;
         const row = document.createElement('div');
         row.style.cssText = `display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
-            background:${isMe ? '#1a2a1a' : '#141414'};
-            border:1px solid ${isMe ? '#00cc00' : rank<=3 ? '#554400' : '#222'}`;
+            background:${isMe ? (isGold?'#1a2a1a':'#001020') : '#141414'};
+            border:1px solid ${isMe ? (isGold?'#00cc00':'#5599ff') : rank<=3 ? '#554400' : '#222'}`;
+        const value = isGold
+            ? `<div style="font-size:12px;color:#ffd700">💰 ${entry.gold.toLocaleString()} G</div>`
+            : `<div style="font-size:12px;color:#7af">👆 ${(entry.clicks||0).toLocaleString()} 회</div>`;
         row.innerHTML = `
             <div style="font-size:${rank<=3?'22px':'15px'};min-width:32px;text-align:center;font-weight:bold;color:${rank<=3?'#ffd700':'#555'}">${medal}</div>
             <div style="flex:1;min-width:0">
-                <div style="font-size:14px;font-weight:bold;color:${isMe?'#00cc00':'#eee'}">${entry.nick}${isMe?' (나)':''}</div>
-                <div style="font-size:12px;color:#ffd700">💰 ${entry.gold.toLocaleString()} G</div>
+                <div style="font-size:14px;font-weight:bold;color:${isMe?(isGold?'#00cc00':'#5599ff'):'#eee'}">${entry.nick}${isMe?' 👈 나':''}</div>
+                ${value}
             </div>`;
-        list.appendChild(row);
-    });
+        return row;
+    };
+
+    list.innerHTML = '';
+
+    // 내 순위 카드를 맨 위에 고정
+    if (myEntry) {
+        list.appendChild(makeRow(myEntry, myRank, true));
+        const sep = document.createElement('div');
+        sep.style.cssText = 'display:flex;align-items:center;gap:8px;margin:8px 0';
+        sep.innerHTML = '<div style="flex:1;border-top:1px solid #2a2a2a"></div><div style="color:#444;font-size:11px;white-space:nowrap">TOP 30</div><div style="flex:1;border-top:1px solid #2a2a2a"></div>';
+        list.appendChild(sep);
+    } else {
+        const noMe = document.createElement('div');
+        noMe.style.cssText = 'text-align:center;color:#444;font-size:12px;padding:8px;margin-bottom:8px;border:1px dashed #333;border-radius:8px';
+        noMe.textContent = '내 데이터가 없습니다 (접속 시 자동 등록)';
+        list.appendChild(noMe);
+    }
+
+    top30.forEach((entry, i) => list.appendChild(makeRow(entry, i + 1, entry.nick === G.nickname)));
 }
 
 async function showRankInventory(nick) {
@@ -3058,8 +3615,115 @@ async function showRankInventory(nick) {
     }
 }
 
-$('btn-ranking').onclick = () => { renderRanking(); openModal('modal-ranking'); };
-$('btn-ranking-close').onclick = () => closeModal('modal-ranking');
+$('btn-auction-open').onclick  = () => { renderAuction(); openModal('modal-auction'); };
+$('btn-auction-close').onclick = () => closeModal('modal-auction');
+
+// ── 이벤트 시스템 ─────────────────────────────────────────────
+function renderEventList() {
+    const el = $('event-list');
+    if (!el) return;
+    const progress = Math.min(G.gourdClickCount, GOURD_TARGET);
+    const claimed  = G.gourdRewardClaimed;
+    el.innerHTML = `
+        <div style="background:#1a1a1a;border:1px solid ${claimed?'#444':'#550033'};border-radius:10px;padding:14px;cursor:${claimed?'default':'pointer'}"
+             id="ev-1month">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <div style="flex:1">
+                    <div style="font-size:15px;font-weight:bold;color:#fff">🎂 1달 기념 이벤트</div>
+                    <div style="font-size:12px;color:#aaa;margin-top:2px">박을 10,000번 두드려 축복의 복숭아를 획득하세요!</div>
+                </div>
+                <span style="font-size:11px;padding:3px 8px;border-radius:10px;background:${claimed?'#1a4a1a':'#2a0018'};color:${claimed?'#0f0':'#ff69b4'};border:1px solid ${claimed?'#0f0':'#cc0066'};white-space:nowrap">
+                    ${claimed ? '✔ 완료' : '진행 중'}
+                </span>
+            </div>
+            <div style="background:#333;border-radius:6px;height:8px;overflow:hidden">
+                <div style="height:100%;background:linear-gradient(90deg,#ff8800,#ffd700);border-radius:6px;width:${(progress/GOURD_TARGET*100).toFixed(1)}%"></div>
+            </div>
+            <div style="font-size:11px;color:#888;margin-top:4px;text-align:right">${progress.toLocaleString()} / ${GOURD_TARGET.toLocaleString()}</div>
+        </div>`;
+    if (!claimed) {
+        document.getElementById('ev-1month').onclick = openGourdModal;
+    }
+}
+
+function openGourdModal() {
+    closeModal('modal-event');
+    updateGourdUI();
+    openModal('modal-gourd');
+    bindGourdClick();
+}
+
+function updateGourdUI() {
+    const count = Math.min(G.gourdClickCount, GOURD_TARGET);
+    const pct   = (count / GOURD_TARGET * 100).toFixed(2);
+    const iconEl = $('gourd-icon');
+    if (iconEl) iconEl.innerHTML = GOURD_SVG;
+
+    const progText = $('gourd-progress-text');
+    if (progText) {
+        if (G.gourdRewardClaimed) {
+            progText.textContent = '✔ 보상 수령 완료!';
+            progText.style.color = '#0f0';
+        } else if (count >= GOURD_TARGET) {
+            progText.textContent = '🎉 완료! 클릭하여 보상 수령';
+            progText.style.color = '#ffd700';
+        } else {
+            progText.textContent = `${count.toLocaleString()} / ${GOURD_TARGET.toLocaleString()}`;
+            progText.style.color = '#ffd700';
+        }
+    }
+    const bar = $('gourd-progress-bar');
+    if (bar) bar.style.width = pct + '%';
+
+    const rewardMsg = $('gourd-reward-msg');
+    if (rewardMsg) {
+        if (G.gourdRewardClaimed) {
+            rewardMsg.style.display = 'block';
+            rewardMsg.innerHTML = `<span style="font-size:28px">${BLESSED_PEACH_SVG}</span><br>축복의 복숭아를 획득했습니다!`;
+        } else {
+            rewardMsg.style.display = 'none';
+        }
+    }
+}
+
+function bindGourdClick() {
+    const iconEl = $('gourd-icon');
+    if (!iconEl) return;
+    iconEl.onclick = () => {
+        if (G.gourdRewardClaimed) return;
+
+        if (G.gourdClickCount >= GOURD_TARGET) {
+            // 보상 지급
+            G.addFruit('축복의 복숭아', 1);
+            G.gourdRewardClaimed = true;
+            G.save(); refreshMain();
+            updateGourdUI();
+            toast('🎉 축복의 복숭아를 획득했습니다!');
+            return;
+        }
+
+        G.gourdClickCount++;
+        // 클릭 애니메이션
+        iconEl.style.transform = 'scale(0.88)';
+        setTimeout(() => { iconEl.style.transform = 'scale(1)'; }, 60);
+
+        if (G.gourdClickCount >= GOURD_TARGET) {
+            G.addFruit('축복의 복숭아', 1);
+            G.gourdRewardClaimed = true;
+        }
+        if (G.gourdClickCount % 10 === 0) G.save();
+        updateGourdUI();
+    };
+}
+
+$('btn-event-open').onclick = () => { renderEventList(); openModal('modal-event'); };
+$('btn-event-close').onclick = () => closeModal('modal-event');
+$('btn-gourd-close').onclick = () => { G.save(); closeModal('modal-gourd'); };
+
+$('btn-ranking').onclick = () => { rankCache = null; rankMode = 'gold'; renderRanking(); openModal('modal-ranking'); };
+$('btn-ranking-close').onclick = () => { rankCache = null; closeModal('modal-ranking'); };
+$('rank-tab-gold').onclick   = () => renderRanking('gold');
+$('rank-tab-clicks').onclick = () => renderRanking('clicks');
 $('btn-rank-inv-close').onclick = () => closeModal('modal-rank-inv');
 
 // ── 앱 숨김/종료 시 남은 포션 시간 저장 (꺼진 동안 시간 멈춤) ─
