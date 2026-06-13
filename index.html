@@ -2491,10 +2491,13 @@ function renderMkt() {
         header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#222;cursor:pointer;border-left:3px solid ${r.color}`;
         if (isDivine_mkt)  header.classList.add('divine-left-border');
         if (isLimited_mkt) header.classList.add('limited-left-border');
-        const mktBadgeCls = isDivine_mkt ? ' divine-text' : isLimited_mkt ? ' limited-text' : '';
+        const mktBadgeCls = isDivine_mkt ? 'divine-text' : isLimited_mkt ? 'limited-text' : '';
         const mktBadgeSt  = (isDivine_mkt || isLimited_mkt) ? '' : ('color:'+r.color+';border:1px solid '+r.color+';');
+        const mktBadgeHtml = mktBadgeCls
+            ? `<span class="rarity-badge" style="background:${r.badgeBg};font-size:11px;padding:2px 8px;letter-spacing:0"><span class="${mktBadgeCls}">${r.label}</span></span>`
+            : `<span class="rarity-badge" style="background:${r.badgeBg};${mktBadgeSt}font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>`;
         header.innerHTML=`
-            <span class="rarity-badge${mktBadgeCls}" style="background:${r.badgeBg};${mktBadgeSt}font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
+            ${mktBadgeHtml}
             <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 과일</span>
             <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'펼치기'}</button>`;
         header.onclick = () => { expanded.mkt[rarityKey]=!isOpen; renderMkt(); };
@@ -2598,10 +2601,13 @@ function renderEquip() {
         header.style.cssText=`display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;background:#1a1a1a;cursor:pointer;border-left:3px solid ${r.color}`;
         if (isDivine_eq)  header.classList.add('divine-left-border');
         if (isLimited_eq) header.classList.add('limited-left-border');
-        const eqBadgeCls = isDivine_eq ? ' divine-text' : isLimited_eq ? ' limited-text' : '';
+        const eqBadgeCls = isDivine_eq ? 'divine-text' : isLimited_eq ? 'limited-text' : '';
         const eqBadgeSt  = (isDivine_eq || isLimited_eq) ? '' : ('color:'+r.color+';border:1px solid '+r.color+';');
+        const eqBadgeHtml = eqBadgeCls
+            ? `<span class="rarity-badge" style="background:${r.badgeBg};font-size:11px;padding:2px 8px;letter-spacing:0"><span class="${eqBadgeCls}">${r.label}</span></span>`
+            : `<span class="rarity-badge" style="background:${r.badgeBg};${eqBadgeSt}font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>`;
         header.innerHTML=`
-            <span class="rarity-badge${eqBadgeCls}" style="background:${r.badgeBg};${eqBadgeSt}font-size:11px;padding:2px 8px;letter-spacing:0">${r.label}</span>
+            ${eqBadgeHtml}
             <span style="flex:1;color:#fff;font-size:13px">${rarityKey} 등급 과일</span>
             <button class="toggle-btn" style="pointer-events:none">${isOpen?'접기':'펼치기'}</button>`;
         header.onclick = ()=>{ expanded.equip[rarityKey]=!isOpen; renderEquip(); };
